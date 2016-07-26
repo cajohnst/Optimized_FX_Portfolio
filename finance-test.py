@@ -64,7 +64,6 @@ Pair    EURUSD    AUDUSD    GBPUSD    NZDUSD    USDMXN    USDJPY    USDCAD    US
 #The following is borrowed from this link: http://blog.quantopian.com/markowitz-portfolio-optimization-2/
 """
 
-
 def optimize_portfolio(returns_table):
     n = len(returns_table)
     returns = np.asmatrix(returns_table)
