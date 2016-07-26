@@ -10,6 +10,9 @@ from cvxopt import blas, solvers
 
 import rollover_scraper
 
+# Turn off progress printing 
+solvers.options['show_progress'] = False
+
 currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXSFUS', 'DEXUSNZ', 'DEXSIUS', 'DEXMXUS', 'DEXJPUS', 'DEXCAUS', 'DEXHKUS']
 
 def main():
@@ -17,7 +20,7 @@ def main():
     data_table = get_currency_data(currency_list, num_days)
     returns_table = get_returns(data_table)
     ## NUMBER OF ASSETS
-    rollover_table = rollover_generator.generate_rollover(currency_list)
+    rollover_table = rollover_scraper.generate_rollover(currency_list)
     weights, returns, risks = optimize_portfolio(returns_table)
     return weights, returns, risks, returns_table, data_table
 
