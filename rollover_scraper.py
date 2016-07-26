@@ -2,10 +2,11 @@ from bs4 import BeautifulSoup
 import dryscrape
 
 # Hardcoded currencies, to be changed
-currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXSFUS', 'DEXUSNZ', 'DEXSIUS', 'DEXMXUS', 'DEXJPUS', 'DEXCAUS', 'DEXHKUS']
 
-def generate_rollover(currency_list):
+def generate_rollover():
 	# Begin session to capture all values, must have JS enabled
+	currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXSFUS', 'DEXUSNZ', 'DEXSIUS', 'DEXMXUS', 'DEXJPUS', 'DEXCAUS', 'DEXHKUS']
+
 	session = dryscrape.Session()
 	url = 'http://www.forex.com/uk/trading-platforms/forextrader/pricing/rollovers.html'
 	session.visit(url)
@@ -14,18 +15,18 @@ def generate_rollover(currency_list):
 	# Begin parsing html
 	soup = BeautifulSoup(html, 'lxml')
 
-	return_dict = dict()
+	return_list = []
 
 	# Iterate through each currency to find short and long roll values
 	for currency in currency_list:
 		try:
-			short_value, long_value = get_id(currency, soup)
-			return_dict[currency] = [short_value, long_value]
+			short_value, long_value, new_name = get_id(currency, soup)
+			return_list.append((new_name[:3] + '/' + new_name[3:], short_value, long_value))
 		except AttributeError as e:
 			print currency + ' not found???'
 			continue
 
-	return return_dict
+	return return_list
 
 
 def get_id(currency, html):
@@ -47,4 +48,4 @@ def get_id(currency, html):
 	if long_value is None:
 		long_value = html.find(id=('A' + long_id))
 
-	return (short_value.text, long_value.text)
+	return (short_value.text, long_value.text, new_name)
