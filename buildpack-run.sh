@@ -8,7 +8,7 @@ qmake -query
 
 PREFIX="$PWD/.apt/usr"
 ARCHDATA="lib/x86_64-linux-gnu/qt5"
-DATA="share/qt5"
+DATA="lib/x86_64-linux-gnu/qt5"
 DOCUMENTATION="share/qt5/doc"
 HEADERS="include/qt5"
 LIBRARIES="lib/x86_64-linux-gnu"
@@ -32,7 +32,6 @@ Imports = $IMPORTS
 Translations = $TRANSLATIONS
 ArchData = $ARCHDATA
 Data = $DATA" > $PWD/.apt/usr/bin/qt.conf
-
 
 cat $PWD/.apt/usr/bin/qt.conf
 
