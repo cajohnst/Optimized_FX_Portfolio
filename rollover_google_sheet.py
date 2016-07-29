@@ -26,7 +26,7 @@ def setup_keyfile_dict():
 	keyfile_dict = dict()
 	keyfile_dict['type'] = os.environ.get('TYPE')
 	keyfile_dict['client_email'] = os.environ.get('CLIENT_EMAIL')
-	keyfile_dict['private_key'] = os.environ.get('PRIVATE_KEY')
+	keyfile_dict['private_key'] = unicode(os.environ.get('PRIVATE_KEY').decode('string_escape'))
 	keyfile_dict['private_key_id'] = os.environ.get('PRIVATE_KEY_ID')
 	keyfile_dict['client_id'] = os.environ.get('CLIENT_ID')
 
