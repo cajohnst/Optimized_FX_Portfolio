@@ -1,3 +1,5 @@
+ln -s -f $PWD/.apt/usr/lib/x86_64-linux-gnu/qt5/bin/qmake $PWD/.apt/usr/bin/qmake
+
 ln -s -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so $PWD/.apt/usr/lib/x86_64-linux-gnu/libGL.so
 ln -s -f /usr/lib/x86_64-linux-gnu/mesa/libGL.so.1 $PWD/.apt/usr/lib/x86_64-linux-gnu/libGL.so
 

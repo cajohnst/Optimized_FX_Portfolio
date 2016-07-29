@@ -3,7 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from datetime import date
 import os
-
+import subprocess
 from rollover_scraper import generate_rollover
 
 
@@ -19,6 +19,8 @@ def main():
 	# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 
+	subprocess.call(['./configure_qt_back.sh'])
+
 	update_spreadsheet(wks, column_dictionary)
 
 def setup_keyfile_dict():
@@ -29,6 +31,7 @@ def setup_keyfile_dict():
 	keyfile_dict['private_key'] = unicode(os.environ.get('PRIVATE_KEY').decode('string_escape'))
 	keyfile_dict['private_key_id'] = os.environ.get('PRIVATE_KEY_ID')
 	keyfile_dict['client_id'] = os.environ.get('CLIENT_ID')
+
 
 	return keyfile_dict
 
