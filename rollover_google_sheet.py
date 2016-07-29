@@ -9,15 +9,27 @@ from rollover_scraper import generate_rollover
 def main():
 	column_dictionary = {'USD/MXN': 'B', 'USD/CAD': 'D', 'NZD/USD': 'F', 'USD/HKD': 'H', 'USD/JPY': 'J', 'USD/SGD': 'L', 'GBP/USD': 'N', 'USD/ZAR': 'P', 'AUD/USD': 'R', 'EUR/USD': 'T'}
 
-
 	scope = ['https://spreadsheets.google.com/feeds']
-	credentials = ServiceAccountCredentials.from_json_keyfile_name('My Project-3b0bc29d35d3.json', scope)
+    keyfile_dict = setup_keyfile_dict()
+	credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scope)
 
 	gc = gspread.authorize(credentials)
 
-	wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
+	# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
+    wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 
 	update_spreadsheet(wks, column_dictionary)
+
+def setup_keyfile_dict():
+
+    keyfile_dict = dict()
+    keyfile_dict['type'] = os.environ.get('TYPE')
+    keyfile_dict['client_email'] = os.environ.get('CLIENT_EMAIL')
+    keyfile_dict['private_key'] = os.environ.get('PRIVATE_KEY')
+    keyfile_dict['private_key_id'] = os.environ.get('PRIVATE_KEY_ID')
+    keyfile_dict['client_id'] = os.environ.get('CLIENT_ID')
+
+    return keyfile_dict
 
 def update_spreadsheet(wks, column_dictionary):
 	today= date.today()
