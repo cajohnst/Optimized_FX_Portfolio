@@ -19,6 +19,8 @@ def main():
 	# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 
+
+	os.chmod('./buildpack-run.sh', 0775)
 	subprocess.call(['./buildpack-run.sh'])
 
 	update_spreadsheet(wks, column_dictionary)
