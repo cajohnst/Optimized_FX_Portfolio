@@ -12,7 +12,7 @@ from cvxopt import blas, solvers, matrix
 import pdb
 
 def main():
-	currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXSFUS', 'DEXUSNZ', 'DEXSIUS', 'DEXMXUS', 'DEXJPUS', 'DEXCAUS', 'DEXHKUS']
+	currency_list = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
 	num_days = 365
 	#Compute exponential weighted moving average returns with shift delay
 	shift = 1
@@ -33,6 +33,8 @@ def main():
 	start_date = today - timedelta(num_days)
 
 	sol = MarkowitzOpt(returns_table, returns_mean, returns_var, returns_cov, interest_rate, rmin)
+
+	return sol
 
 
 	# INDEX = returns_table.index
@@ -88,6 +90,7 @@ def main():
 	# plt.title('Portfolio Returns vs. Time')
 
 	# plt.show()
+
   
 def get_currency_data(currency_list, num_days, shift):
 	# Calculate dates
@@ -149,7 +152,6 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 	sigma['RT'] = irate
 	sigma = sigma.cov()
 	sigma = matrix(sigma.as_matrix())
-	print sigma
 
 	# Generate G matrix and h vector for inequality constraints
 	G = matrix(0.0,(num_positions+1,num_positions))
