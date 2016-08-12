@@ -88,8 +88,7 @@ def populate_columns(wks, rollover_table, last_column):
 def pull_data(num_days):
 	wks = setup_credentials()
 	current_row = wks.acell('A1').value
-	# latest_entry = int(wks.acell('A1').value) - 1
-	latest_entry = 12
+	latest_entry = int(wks.acell('A1').value) - 1
 	if num_days > latest_entry:
 		start_row = 2
 	else:
