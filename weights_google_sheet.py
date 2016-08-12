@@ -3,7 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from datetime import date
 import os
-import portfolio_optimization
+import Optimize_FX_Portfolio
 
 
 on_heroku = False
@@ -12,16 +12,17 @@ if 'DYNO' in os.environ:
 	on_heroku = True
 
 def main():
-	column_list = ['USD/MXN', 'USD/CAD', 'NZD/USD', 'USD/HKD','USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR','AUD/USD','EUR/USD', 'RF']
+	currency_list = Optimize_FX_Portfolio.get_currency_list()
+	currency_list.append("RF")
 
 	wks = setup_credentials()
 
 	if on_heroku:
-		update_spreadsheet(wks, column_list)
+		update_spreadsheet(wks)
 	else:
 		request = raw_input('Enter Y to update the spreadsheet: ')
 		if request is 'Y' or request is 'y':
-			update_spreadsheet(wks, column_list)
+			update_spreadsheet(wks)
 
 def setup_credentials():
 	scope = ['https://spreadsheets.google.com/feeds']
@@ -47,51 +48,44 @@ def setup_keyfile_dict():
 
 	return keyfile_dict
 
-def update_spreadsheet(wks, column_list):
+def update_spreadsheet(wks):
 	today= date.today()
 	if wks.acell('A1').value == '':
 		wks.update_acell('A1', 2)
 	current_row= wks.acell('A1').value
 
-	weights_vector = portfolio_optimization.main()
-	print weights_vector
+	weights_vector, merge_table = Optimize_FX_Portfolio.main()
+
+
+	table_columns = list(merge_table.columns)
+	table_columns.append('RF')
+
+	# calculate the last column based on the size of the rollover table
+	last_column = increment_letter('B', len(weights_vector)-1)
 
 	if wks.acell('B1').value == '':
-		cell_list = wks.range('B1:L1')
+		cell_list = wks.range('B1:' + last_column + '1')
 		for index, cell in enumerate(cell_list):
-			cell.value = column_list[index]
+			cell.value = table_columns[index]
 		wks.update_cells(cell_list)
+	wks.update_acell('A' + current_row, today)
 
-	cell_range = 'B'+current_row+':L'+current_row
+	cell_range = 'B' + current_row + ':' + last_column + current_row
 	cell_list = wks.range(cell_range)
 	for index, cell in enumerate(cell_list):
 		cell.value = weights_vector[index][0]
 	wks.update_cells(cell_list)
-	wks.update_acell('A' + current_row, today)
-	# for name, short_val, long_val in rollover_table:
-	# 	current_column= column_dictionary[name]
-	# 	wks.update_acell(current_column + current_row, short_val)
-	# 	current_column= increment_letter(current_column)
-	# 	wks.update_acell(current_column + current_row, long_val)
-	wks.update_acell('A1', int(current_row) + 1)
 
-# def populate_columns(wks, rollover_table, column_dictionary):
-# 	for name, short_val, long_val in rollover_table:
-# 		short_name = name + ' - S'
-# 		long_name = name + ' - L'
-# 		current_column = column_dictionary[name]
-# 		wks.update_acell(current_column+'1', short_name)
-# 		current_column = increment_letter(current_column)
-# 		wks.update_acell(current_column+'1', long_name)
+	wks.update_acell('A1', int(current_row) + 1)
 
 def pull_data():
 	wks = setup_credentials()
 
 
 
-def increment_letter(letter):
+def increment_letter(letter, amount):
 	cur = ord(letter)
-	return chr(cur+1)
+	return chr(cur+amount)
 
 if __name__ == "__main__":
 	main()

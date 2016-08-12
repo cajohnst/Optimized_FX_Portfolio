@@ -3,9 +3,8 @@ from selenium import webdriver
 
 # Hardcoded currencies, to be changed
 
-def generate_rollover():
+def generate_rollover(currency_list):
 	# Begin session to capture all values, must have JS enabled
-	currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXSFUS', 'DEXUSNZ', 'DEXSIUS', 'DEXMXUS', 'DEXJPUS', 'DEXCAUS', 'DEXHKUS']
 
 	session = webdriver.PhantomJS()
 	url = 'http://www.forex.com/uk/trading-platforms/forextrader/pricing/rollovers.html'

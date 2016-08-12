@@ -7,9 +7,10 @@ import datetime
 from datetime import date, timedelta
 import cvxopt as opt
 from cvxopt import blas, solvers, matrix
+import rollover_google_sheet 
 
 def main():
-	currency_list = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
+	currency_list = get_currency_list()
 	num_days = 365
 	#Compute returns with shift delay
 	shift = 1
@@ -29,18 +30,33 @@ def main():
 	# Return the returns table with leverage
 	returns_table = returns_table * leverage
 
-	# Calculate the mean, variance, and covariances of the returns table
-	returns_mean, returns_var, returns_cov = calc_mean_var_cov(returns_table)
+	rollover_table = rollover_google_sheet.pull_data(num_days)
 
-	# Variable Initialization
-	today= datetime.date.today()
-	start_date = today - timedelta(num_days)
+	rollover_table = rollover_table / 10000
+
+	merge_table = merge_tables(returns_table, rollover_table)
+	merge_table = merge_table.dropna()
+
+	# Calculate the mean, variance, and covariances of the returns table
+	returns_mean, returns_var, returns_cov = calc_mean_var_cov(merge_table)
 
 	# Compute minimum variance portfolio to match desired expected return, print optimal portfolio weights
-	sol = MarkowitzOpt(returns_table, returns_mean, returns_var, returns_cov, interest_rate, rmin)
-	print sol
+	sol = MarkowitzOpt(merge_table, returns_mean, returns_var, returns_cov, interest_rate, rmin)
+	return sol, merge_table
 
 	''' ***Export weights to google spreadsheet to concatenate*** '''
+
+def get_currency_list():
+	currency_list = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
+	return currency_list
+
+def merge_tables(returns_table, rollover_table):
+	merge_table = pd.DataFrame(columns=rollover_table.columns)
+	for index, column in enumerate(returns_table):
+		merge_table[merge_table.columns[(index * 2)]] = returns_table.ix[:,index]
+		merge_table[merge_table.columns[(index * 2) + 1]] = returns_table.ix[:,index]
+	merge_table = merge_table + rollover_table
+	return merge_table
   
 def get_currency_data(currency_list, num_days, shift):
 	# Calculate dates
