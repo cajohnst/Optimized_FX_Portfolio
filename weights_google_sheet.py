@@ -12,17 +12,18 @@ if 'DYNO' in os.environ:
 	on_heroku = True
 
 def main():
-	currency_list = Optimize_FX_Portfolio.get_currency_list()
-	currency_list.append("RF")
+	if date.today().weekday() == 1:
+		currency_list = Optimize_FX_Portfolio.get_currency_list()
+		currency_list.append("RF")
 
-	wks = setup_credentials()
+		weights_wks, merge_wks = setup_credentials()
 
-	if on_heroku:
-		update_spreadsheet(wks)
-	else:
-		request = raw_input('Enter Y to update the spreadsheet: ')
-		if request is 'Y' or request is 'y':
-			update_spreadsheet(wks)
+		if on_heroku:
+			update_spreadsheet(weights_wks, merge_wks)
+		else:
+			request = raw_input('Enter Y to update the spreadsheet: ')
+			if request is 'Y' or request is 'y':
+				update_spreadsheet(weights_wks, merge_wks)
 
 def setup_credentials():
 	scope = ['https://spreadsheets.google.com/feeds']
@@ -34,9 +35,11 @@ def setup_credentials():
 
 	gc = gspread.authorize(credentials)
 
-	wks = gc.open_by_key("1fibwcsUJOj9gWV6imgADLQuTuVeie_0ccNXIz01ZtuY").sheet1
+	# Weights Table
+	weights_wks = gc.open_by_key("1fibwcsUJOj9gWV6imgADLQuTuVeie_0ccNXIz01ZtuY").sheet1
 
-	return wks
+	merge_wks = gc.open_by_key("10M7EDaurp43bBrCMQsdBVvQdjmXvhx_USvR4aWOAJ8M").sheet1
+	return weights_wks, merge_wks
 
 def setup_keyfile_dict():
 	keyfile_dict = dict()
@@ -48,17 +51,20 @@ def setup_keyfile_dict():
 
 	return keyfile_dict
 
-def update_spreadsheet(wks):
-	today= date.today()
-	if wks.acell('A1').value == '':
-		wks.update_acell('A1', 2)
-	current_row= wks.acell('A1').value
+def update_spreadsheet(weights_wks, merge_wks):
+	today = date.today()
 
 	weights_vector, merge_table = Optimize_FX_Portfolio.main()
 
-
 	table_columns = list(merge_table.columns)
-	table_columns.append('RF')
+
+	# for day in range(4:9)[::-1]:
+		
+
+
+
+def update_weights(wks, weights_vector, table_columns):
+	update_setup(wks)
 
 	# calculate the last column based on the size of the rollover table
 	last_column = increment_letter('B', len(weights_vector)-1)
@@ -77,6 +83,16 @@ def update_spreadsheet(wks):
 	wks.update_cells(cell_list)
 
 	wks.update_acell('A1', int(current_row) + 1)
+
+
+def update_merge(wks, merge_table, table_columns):
+	update_setup(wks)
+
+def update_setup(wks, last_column):
+	today= date.today()
+	if wks.acell('A1').value == '':
+		wks.update_acell('A1', 2)
+	current_row= wks.acell('A1').value
 
 def pull_data():
 	wks = setup_credentials()

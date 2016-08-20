@@ -36,6 +36,7 @@ def main():
 
 	merge_table = merge_tables(returns_table, rollover_table)
 	merge_table = merge_table.dropna()
+	merge_table['RF'] = interest_rate
 
 	# Calculate the mean, variance, and covariances of the returns table
 	returns_mean, returns_var, returns_cov = calc_mean_var_cov(merge_table)
@@ -97,8 +98,6 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 	num_positions = num_currencies + 1
 	# mean return vector
 	pbar = returns_mean.copy(deep=True)
-	pbar['RT'] = irate
-	
 
 	# Ensure feasability Code
 	if(pbar.max() < rmin):
@@ -107,7 +106,6 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 		rmin_constraint = rmin;
 	
 	sigma = returns_table.copy(deep=True)
-	sigma['RT'] = irate
 	sigma = sigma.cov()
 	sigma = matrix(sigma.as_matrix())
 
