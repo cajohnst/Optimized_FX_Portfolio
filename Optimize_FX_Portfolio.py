@@ -2,12 +2,13 @@ import pandas as pd
 import numpy as np
 import pandas.io.data as web
 from pandas.io.data import DataReader
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, ExcelWriter
 import datetime
 from datetime import date, timedelta
 import cvxopt as opt
 from cvxopt import blas, solvers, matrix
 import rollover_google_sheet 
+import xlsxwriter
 
 def main():
 	currency_list = get_currency_list()
@@ -23,12 +24,7 @@ def main():
 	interest_rate = 0.0225/365.
 
 	# Minimum desired return
-	rmin = 0.05/365
-
-	# Input Leverage
-	leverage = 10/3
-	# Return the returns table with leverage
-	returns_table = returns_table * leverage
+	rmin = 0.25/365
 
 	rollover_table = rollover_google_sheet.pull_data(num_days)
 
@@ -36,10 +32,20 @@ def main():
 
 	merge_table = merge_tables(returns_table, rollover_table)
 	merge_table = merge_table.dropna()
+
+	# Input Leverage
+	leverage = 10/1.5
+	# Return the returns table with leverage
+	merge_table = merge_table * leverage
+
 	merge_table['RF'] = interest_rate
 
 	# Calculate the mean, variance, and covariances of the returns table
 	returns_mean, returns_var, returns_cov = calc_mean_var_cov(merge_table)
+
+	writer= pd.ExcelWriter('sample_returns_test.xlsx', engine= 'xlsxwriter')
+	merge_table.to_excel(writer, 'sheet1')
+	writer.save()
 
 	# Compute minimum variance portfolio to match desired expected return, print optimal portfolio weights
 	sol = MarkowitzOpt(merge_table, returns_mean, returns_var, returns_cov, interest_rate, rmin)
@@ -54,10 +60,12 @@ def get_currency_list():
 def merge_tables(returns_table, rollover_table):
 	merge_table = pd.DataFrame(columns=rollover_table.columns)
 	for index, column in enumerate(returns_table):
-		merge_table[merge_table.columns[(index * 2)]] = returns_table.ix[:,index]
+		merge_table[merge_table.columns[(index * 2)]] = -1 * returns_table.ix[:,index]
 		merge_table[merge_table.columns[(index * 2) + 1]] = returns_table.ix[:,index]
 	merge_table = merge_table + rollover_table
 	return merge_table
+
+	''' *** When merging, Shorts need to be multiplied by -1 *** '''
   
 def get_currency_data(currency_list, num_days, shift):
 	# Calculate dates
@@ -95,7 +103,7 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 	num_currencies = returns_mean.size
 	# Number of positions
 	# Additional position for risk free rate
-	num_positions = num_currencies + 1
+	num_positions = num_currencies
 	# mean return vector
 	pbar = returns_mean.copy(deep=True)
 
@@ -110,8 +118,8 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 	sigma = matrix(sigma.as_matrix())
 
 	# Generate G matrix and h vector for inequality constraints
-	G = matrix(0.0,(num_positions+1,num_positions))
-	h = matrix(0.0,(num_positions+1,1))
+	G = matrix(0.0,(num_positions,num_positions))
+	h = matrix(0.0,(num_positions,1))
 	h[-1] = -rmin_constraint
 	for i in np.arange(num_positions):
 		G[i,i] = -1
@@ -127,8 +135,11 @@ def MarkowitzOpt(returns_table, returns_mean,returns_var,returns_cov,irate,rmin)
 	# Solution
 	xsol = np.array(sol['x'])
 	dist_sum = xsol.sum()
+	print xsol
+	print dist_sum
 
 	return xsol
+
 
 if __name__ == "__main__":
 	main()
