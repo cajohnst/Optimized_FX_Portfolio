@@ -15,24 +15,28 @@ def main():
 	#Compute returns with shift delay
 	shift = 1
 	#Compute returns
-	spot_table = get_daily_spot(currency_list, num_days, shift)
+	# spot_table = get_daily_spot(currency_list, num_days, shift)
 
-	futures_table = get_daily_futures(futures_list, num_days)
+	# futures_table = get_daily_futures(futures_list, num_days)
 
-	numcols = len(spot_table.columns)
+	spot_table = DataFrame.from_csv('spots_table.txt')
+	futures_table = DataFrame.from_csv('futures_table.txt')
 
 	merge_table = spot_table.join(futures_table, how = 'inner')
-	print merge_table
 
-	for index in enumerate(spot_table):
-
-		plt.plot(merge_table[index], color = 'g')
-		plt.plot(merge_table[index + numcols], color = 'b')
-		plt.xlabel('Date')
-		plt.ylabel('Rate')
-		plt.title('spot_table[column] Spot vs. Futures Returns')
-
+	for col in range(6):
+		for index, date in enumerate(merge_table.index):
+			spot_val = merge_table.iloc[index][spot_table.columns[col]]
+			futures_val = merge_table.iloc[index][futures_table.columns[col]]
+			plt.plot(date, spot_val,'bo')
+			plt.plot(date, futures_val, 'go')
+			plt.xlabel('Date')
+			plt.ylabel('Rate')
+			plt.title('{0} Spot vs. Futures Returns'.format(spot_table.columns[col]))
 		plt.show()
+
+	import pdb
+	pdb.set_trace()
 
 
 def get_currency_list():
