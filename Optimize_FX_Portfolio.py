@@ -17,7 +17,7 @@ def main():
 	#Compute returns with shift delay
 	shift = 1
 	#Compute returns
-	returns_table_1, returns_table_2 = get_currency_data(currency_list, num_days, shift)
+	returns_table_1, returns_table_2 = get_currency_data(currency_list_quandl, currency_list_fred, num_days, shift)
 
 	print returns_table_1
 	print returns_table_2
@@ -62,9 +62,9 @@ def main():
 	# return sol, merge_table
 
 def get_currency_list():
-	# currency_list = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
-	currency_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1', 'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
-	return currency_list
+	currency_list_fred = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
+	currency_list_quandl = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1', 'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
+	return currency_list_fred, currency_list_quandl
 
 def merge_tables(returns_table, rollover_table):
 	merge_table = pd.DataFrame(columns=rollover_table.columns)
@@ -74,7 +74,7 @@ def merge_tables(returns_table, rollover_table):
 	merge_table = merge_table + rollover_table
 	return merge_table
   
-def get_currency_data(currency_list, num_days, shift):
+def get_currency_data(currency_list_quandl, currency_list_fred, num_days, shift):
 	# Calculate dates
 	end_date = datetime.date.today()
 	start_date = end_date - timedelta(num_days)
@@ -83,7 +83,7 @@ def get_currency_data(currency_list, num_days, shift):
 	data_table = None
 	# Run through currencies, first assignment is initialized
 	# Anything past first currency is joined into table
-	for currency in currency_list:
+	for currency in currency_list_quandl:
 		current_column = qdl.get(currency, start_date= start_date, end_date= end_date)
 		if data_table is None:
 			data_table = current_column
@@ -102,7 +102,7 @@ def get_currency_data(currency_list, num_days, shift):
 	data_table_fred = None
 	# Run through currencies, first assignment is initialized
 	# Anything past first currency is joined into table
-	for currency in currency_list:
+	for currency in currency_list_fred:
 		current_column = DataReader(currency, 'fred', start_date, today)
 		if data_table_fred is None:
 			data_table_fred = current_column
