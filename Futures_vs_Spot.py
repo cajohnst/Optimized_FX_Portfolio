@@ -7,6 +7,8 @@ from pandas import Series, DataFrame, ExcelWriter
 import datetime
 from datetime import date, timedelta
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
+from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
 def main():
 	currency_list = get_currency_list()
@@ -22,22 +24,42 @@ def main():
 	spot_table = DataFrame.from_csv('spots_table.txt')
 	futures_table = DataFrame.from_csv('futures_table.txt')
 
-	merge_table = spot_table.join(futures_table, how = 'inner')
+	spot_table = spot_table.pct_change()
+	futures_table = futures_table.pct_change()
+	futures_table.columns = ['EUR/USD', 'GBP/USD', 'AUD/USD', 'USD/CAD', 'NZD/USD', 'USD/JPY']
+	difference_table = futures_table - spot_table
+	difference_table = difference_table.dropna().add_suffix('_dif')
+	merge_table = spot_table.join(difference_table, how = 'inner')
+
 
 	for col in range(6):
 		for index, date in enumerate(merge_table.index):
-			spot_val = merge_table.iloc[index][spot_table.columns[col]]
-			futures_val = merge_table.iloc[index][futures_table.columns[col]]
-			plt.plot(date, spot_val,'bo')
-			plt.plot(date, futures_val, 'go')
+			dif_val = merge_table.iloc[index][futures_table.columns[col]]
+			plt.plot(date, dif_val, 'bo')
 			plt.xlabel('Date')
-			plt.ylabel('Rate')
-			plt.title('{0} Spot vs. Futures Returns'.format(spot_table.columns[col]))
+			plt.ylabel('Returns')
+			plt.title('{0} Spot vs. Futures Returns Divergence'.format(spot_table.columns[col]))
 		plt.show()
 
-	import pdb
-	pdb.set_trace()
+	for col in spot_table.columns:
+		ols_result = sm.OLS(merge_table[col], merge_table[col + '_dif']).fit()
+		print('Parameters:',ols_result.params)
+		print('R^2:', ols_result.rsquared)
+		print(ols_result.summary())
 
+		prstd, iv_l, iv_u = wls_prediction_std(ols_result)
+
+		fig, ax = plt.subplots(figsize=(8,6))
+
+		ax.plot(merge_table[col + '_dif'], merge_table[col], 'o', label="data")
+		ax.plot(merge_table[col + '_dif'], ols_result.fittedvalues, 'y-', label="OLS")
+		ax.plot(merge_table[col + '_dif'], iv_u, 'r--', label= "Upper")
+		ax.plot(merge_table[col + '_dif'], iv_l, 'r--', label= "Lower")
+		ax.set_xlabel('Percent Divergence')
+		ax.set_ylabel('Percent Change in Next Day')
+		ax.legend(loc='best');
+		plt.title(col + ' Divergence between Futures and Spot vs. Next Day Spot')
+		plt.show()
 
 def get_currency_list():
 	currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXCAUS', 'DEXUSNZ', 'DEXJPUS']
@@ -70,7 +92,7 @@ def get_daily_spot(currency_list, num_days, shift):
 def get_daily_futures(futures_list, num_days):
 	today = datetime.date.today()
 	start_date = today - timedelta(num_days)
-	end_date = today -timedelta(7)
+	end_date = today
 	#Initialize data table
 	futures_table = None
 
@@ -79,7 +101,7 @@ def get_daily_futures(futures_list, num_days):
 		if futures_table is None:
 			futures_table = current_column
 		else:
-			futures_table = futures_table.join(current_column, how= 'left', rsuffix= '_F')
+			futures_table = futures_table.join(current_column, how= 'left', rsuffix= 'F_')
 
 	futures_table.columns = ['F_EUR/USD', 'F_GBP/USD', 'F_AUD/USD', 'F_USD/CAD', 'F_NZD/USD', 'F_USD/JPY']
 
@@ -87,7 +109,7 @@ def get_daily_futures(futures_list, num_days):
 		futures_table['F_USD/CAD'] = 1/ futures_table['F_USD/CAD']
 
 	if 'F_USD/JPY' in futures_table.columns:
-		futures_table['F_USD/JPY'] = futures_table['F_USD/JPY'] / 100
+		futures_table['F_USD/JPY'] = 1 / (futures_table['F_USD/JPY'] / 1000000)
 
 	return futures_table
 
