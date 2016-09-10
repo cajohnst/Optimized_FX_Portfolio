@@ -11,15 +11,16 @@ import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
 def main():
+	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 	currency_list = get_currency_list()
 	futures_list = get_futures_list()
 	num_days = 365
 	#Compute returns with shift delay
 	shift = 1
 	#Compute returns
-	# spot_table = get_daily_spot(currency_list, num_days, shift)
+	spot_table = get_daily_spot(currency_list, num_days, shift, auth_tok)
 
-	# futures_table = get_daily_futures(futures_list, num_days)
+	futures_table = get_daily_futures(futures_list, num_days, auth_tok)
 
 	spot_table = DataFrame.from_csv('spots_table.txt')
 	futures_table = DataFrame.from_csv('futures_table.txt')
@@ -62,16 +63,16 @@ def main():
 		plt.show()
 
 def get_currency_list():
-	currency_list = ['DEXUSEU', 'DEXUSUK', 'DEXUSAL', 'DEXCAUS', 'DEXUSNZ', 'DEXJPUS']
+	currency_list = ['CURRFX/EURUSD.1', 'CURRFX/GBPUSD.1', 'CURRFX/AUDUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDJPY.1']
 	return currency_list
 
 def get_futures_list():
 	futures_list = ['CHRIS/CME_EC1.1', 'CHRIS/CME_BP1.1', 'CHRIS/CME_AD1.1', 'CHRIS/CME_CD3.1', 'CHRIS/CME_NE1.1', 'CHRIS/CME_JY1.1']
 	return futures_list
 
-def get_daily_spot(currency_list, num_days, shift):
+def get_daily_spot(currency_list, num_days, shift, api_key):
 	# Calculate dates
-	today = datetime.date.today()
+	end_date = datetime.date.today()
 	start_date = today - timedelta(num_days)
 
 	# Initialize data table
@@ -79,7 +80,7 @@ def get_daily_spot(currency_list, num_days, shift):
 	# Run through currencies, first assignment is initialized
 	# Anything past first currency is joined into table
 	for currency in currency_list:
-		current_column = DataReader(currency, 'fred', start_date, today)
+		current_column = qdl.get(currency, start_date= start_date, end_date= end_date, authtoken= api_key)
 		if data_table is None:
 			data_table = current_column
 		else:
