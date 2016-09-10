@@ -27,36 +27,34 @@ def main():
 
 	RSI = RSI_Calc(currency_table, q)
 	print RSI
-	# chart_data = currency_table.join(RSI, how = 'inner', rsuffix = ' ')
+	chart_data = currency_table.join(RSI, how = 'inner', rsuffix = ' ')
+	for currency in RSI:
+		plt.rc('axes', grid=True)
+		plt.rc('grid', color='0.75', linestyle='-', linewidth=0.5)
 
-	# for stock in stock_list:
+		textsize = 9
+		left, width = 0.1, 0.8
+		rect1 = [left, 0.7, width, 0.2]
+		rect2 = [left, 0.3, width, 0.4]
 
-	# 	plt.rc('axes', grid=True)
-	# 	plt.rc('grid', color='0.75', linestyle='-', linewidth=0.5)
+		fig = plt.figure(facecolor='white')
+		axescolor = '#f6f6f6'  # the axes background color
 
-	# 	textsize = 9
-	# 	left, width = 0.1, 0.8
-	# 	rect1 = [left, 0.7, width, 0.2]
-	# 	rect2 = [left, 0.3, width, 0.4]
+		ax1 = fig.add_axes(rect1, axisbg=axescolor)  # left, bottom, width, height
+		ax2 = fig.add_axes(rect2, axisbg=axescolor, sharex=ax1)
 
-	# 	fig = plt.figure(facecolor='white')
-	# 	axescolor = '#f6f6f6'  # the axes background color
-
-	# 	ax1 = fig.add_axes(rect1, axisbg=axescolor)  # left, bottom, width, height
-	# 	ax2 = fig.add_axes(rect2, axisbg=axescolor, sharex=ax1)
-
-	# 	ax1.plot(dates, RSI_vals, color='blue')
-	# 	ax1.axhline(Overbought, color='red')
-	# 	ax1.axhline(Oversold, color='green')
-	# 	ax1.fill_between(dates, RSI_vals, 70, where=(RSI >= 70), facecolor='red', edgecolor='red')
-	# 	ax1.fill_between(dates, RSI_vals, 30, where=(RSI <= 30), facecolor='green', edgecolor='green')
-	# 	ax1.text(0.6, 0.9, '>70 = overbought', va='top', transform=ax1.transAxes, fontsize=textsize)
-	# 	ax1.text(0.6, 0.1, '<30 = oversold', transform=ax1.transAxes, fontsize=textsize)
-	# 	ax1.set_ylim(0, 100)
-	# 	ax1.set_yticks([30, 70])
-	# 	ax1.text(0.025, 0.95, 'RSI (%s)' % q, va='top', transform=ax1.transAxes, fontsize=textsize)
-	# 	ax1.set_title('{0} daily'.format(stock))
-
+		ax1.plot(RSI.index, RSI[currency], color='blue')
+		ax1.axhline(Overbought, color='red')
+		ax1.axhline(Oversold, color='green')
+		# ax1.fill_between(RSI.index, RSI[currency], 70, where=(RSI >= 70), facecolor='red', edgecolor='red')
+		# ax1.fill_between(RSI.index, RSI[currency], 30, where=(RSI <= 30), facecolor='green', edgecolor='green')
+		ax1.text(0.6, 0.9, '>70 = overbought', va='top', transform=ax1.transAxes, fontsize=textsize)
+		ax1.text(0.6, 0.1, '<30 = oversold', transform=ax1.transAxes, fontsize=textsize)
+		ax1.set_ylim(0, 100)
+		ax1.set_yticks([30, 70])
+		ax1.text(0.025, 0.95, 'RSI (%s)' % q, va='top', transform=ax1.transAxes, fontsize=textsize)
+		ax1.set_title('{0} daily'.format(currency))
+	plt.show()
 
 def get_currency_list():
 	currency_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1', 'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
