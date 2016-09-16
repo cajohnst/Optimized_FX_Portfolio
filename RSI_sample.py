@@ -12,16 +12,20 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 
+#Word of caution, it seems quandl data is imperfect for high and low readings before July, 2016
 
 def main():
 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 
 	#Number of days worth of data useable for charts or regression analysis
-	num_days = 365
+	num_days = 100
 	#Pull data up to this point
 	to_date = datetime.date.today()
 	#List of currencies to pull data for
 	currency_list = get_currency_list()
+	#Create new lists to pull daily lows and highs for the stochastic oscillator
+	list_high = [high.replace('1', '2') for high in currency_list]
+	list_low = [low.replace('1', '3') for low in currency_list]
 
 	#q = avg. periods for gain/loss
 	q = 14
@@ -57,6 +61,10 @@ def main():
 
 	#Pull data from quandl
 	currency_table = get_currency_data(currency_list, pull_data_days, auth_tok)
+	#Get daily lows from quandl for stochastic oscillator
+	low_table = get_currency_data(list_low, pull_data_days, auth_tok)
+	#Get daily highs from quandl for stochastic oscillator
+	high_table = get_currency_data(list_high, pull_data_days, auth_tok)
 
 	# #Calculate RSI for all currency pairs in currency_table
 	RSI = RSI_Calc(currency_table, q)
@@ -70,7 +78,7 @@ def main():
 	ema9 = moving_average(macd, nema, type = 'exponential')
 
 	#Calculate stochastics
-	fast_stochastic, slow_stochastic = get_stochastic(currency_table, n, d)
+	fast_stochastic, slow_stochastic = get_stochastic(currency_table, low_table, high_table, n, d)
 
 	RSI = drop_rows(RSI, max_lag)
 	ma_f = drop_rows(ma_f, max_lag)
@@ -208,17 +216,11 @@ def get_MACD(x, nslow=26, nfast=12):
 
 	return emaslow, emafast, macd
 
-def get_stochastic(prices, n, nma):
-	#Change high and low so that they do not include current index
-	print prices
-	prices_shift = prices.shift(periods = 1)
-	print prices_shift
-	low = prices_shift.rolling(window = n, center= False).min()
-	high = prices_shift.rolling(window= n, center= False).max()
-	k = 100 * ((prices - low)/ (high - low))
-
-	print k
-	d = moving_average(k, nma, type = 'simple')
+def get_stochastic(data, data_low, data_high, n, smoothing):
+	low = data_low.rolling(window = n, center= False).min()
+	high = data_high.rolling(window= n, center= False).max()
+	k = 100 * ((data - low)/ (high - low))
+	d = moving_average(k, smoothing, type = 'simple')
 
 	return k, d
 
