@@ -4,10 +4,10 @@ from datetime import date, timedelta
 # Hardcoded currencies, to be changed
 
 def main():
-	today = datetime.date.today()strftime("%Y%m%d")
+	today = datetime.date.today().strftime("%Y%m%d")
 	return get_csv(today)
 
-def get_csv(date):
+def get_csv(input_date):
 	headers = {
 	'Host': 'calendar.fxstreet.com',
 	'Connection': 'keep-alive',
@@ -20,7 +20,7 @@ def get_csv(date):
 	'Accept-Encoding': 'gzip, deflate, sdch, br',
 	'Accept-Language': 'en-US,en;q=0.8,zh-TW;q=0.6'
 	}
-	url = "https://calendar.fxstreet.com/eventdate/?f=csv&v=2&timezone=UTC&rows=&view=range&start=20160916&end=20160916&countrycode=AU%2CCA%2CCN%2CEMU%2CFR%2CDE%2CGR%2CIT%2CJP%2CNZ%2CPT%2CES%2CCH%2CUK%2CUS&volatility=0&culture=en&columns=CountryCurrency%2CCountdown" 
+	url = "https://calendar.fxstreet.com/eventdate/?f=csv&v=2&timezone=UTC&rows=&view=range&start={0}&end={1}&countrycode=AU%2CCA%2CCN%2CEMU%2CFR%2CDE%2CGR%2CIT%2CJP%2CNZ%2CPT%2CES%2CCH%2CUK%2CUS&volatility=0&culture=en&columns=CountryCurrency%2CCountdown".format(input_date, input_date)
 	csv_data = requests.get(url, headers=headers)
 	csv_encode = csv_data.text.encode('utf-8')
 	
