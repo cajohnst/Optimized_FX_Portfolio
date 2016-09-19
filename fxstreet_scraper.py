@@ -1,11 +1,13 @@
 import requests
-
+import datetime
+from datetime import date, timedelta
 # Hardcoded currencies, to be changed
 
 def main():
-	return get_csv()
+	today = datetime.date.today()strftime("%Y%m%d")
+	return get_csv(today)
 
-def get_csv():
+def get_csv(date):
 	headers = {
 	'Host': 'calendar.fxstreet.com',
 	'Connection': 'keep-alive',
@@ -18,11 +20,11 @@ def get_csv():
 	'Accept-Encoding': 'gzip, deflate, sdch, br',
 	'Accept-Language': 'en-US,en;q=0.8,zh-TW;q=0.6'
 	}
-	url = "https://calendar.fxstreet.com/eventdate/?f=csv&v=2&timezone=UTC&rows=&view=range&start=20160915&end=20160915&countrycode=AU%2CCA%2CCN%2CEMU%2CFR%2CDE%2CGR%2CIT%2CJP%2CNZ%2CPT%2CES%2CCH%2CUK%2CUS&volatility=0&culture=en&columns=CountryCurrency%2CCountdown"
+	url = "https://calendar.fxstreet.com/eventdate/?f=csv&v=2&timezone=UTC&rows=&view=range&start=20160916&end=20160916&countrycode=AU%2CCA%2CCN%2CEMU%2CFR%2CDE%2CGR%2CIT%2CJP%2CNZ%2CPT%2CES%2CCH%2CUK%2CUS&volatility=0&culture=en&columns=CountryCurrency%2CCountdown" 
 	csv_data = requests.get(url, headers=headers)
 	csv_encode = csv_data.text.encode('utf-8')
 	
-	with open('event_calendar.csv', 'w') as csv_file:
+	with open('event_calendar_today.csv', 'w') as csv_file:
 		for row in csv_encode.split('/r/n'):
 			csv_file.write(row)
 
