@@ -7,9 +7,11 @@ import datetime
 from datetime import date, timedelta
 import rollover_google_sheet
 import RSI_sample
+import fxstreet_scraper
 
 def main():
 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
+	country_list = get_country_list()
 	currency_list = get_currency_list()
 	currency_quandl_list = get_currency_quandl_list()
 	fed_list = get_fed_list()
@@ -17,6 +19,13 @@ def main():
 
 	end_date = datetime.date.today()
 
+#############################################################################################################################
+#Econ_Events data
+	# fxstreet_scraper.main()
+	econ_calendar, pull_list = pull_econ_calendar("/Users/cajohnst/Coding/event_calendar_today.csv", "/Users/cajohnst/Coding/event_calendar.csv", end_date)
+
+#############################################################################################################################
+#RSI_sample data
 	n = 14
 	d = 3
 	nslow = 26
@@ -48,6 +57,7 @@ def main():
 
 	#Calculate exponentially weighted moving averages and MACD
 	emaslow, emafast, macd = RSI_sample.get_MACD(currency_table, nslow= nslow, nfast = nfast)
+	ema9 = RSI_sample.moving_average(macd, nema, type = 'exponential')
 
 	#Calculate stochastics
 	fast_stochastic, slow_stochastic = RSI_sample.get_stochastic(currency_table, low_table, high_table, n, d)
@@ -67,8 +77,7 @@ def main():
 	slow_stochastic = RSI_sample.drop_rows(slow_stochastic, max_lag)
 	currency_table = RSI_sample.drop_rows(currency_table, max_lag)
 
-	
-	# econ_calendar, pull_list = pull_econ_calendar()
+
 	# econ_data = pull_economic_data(returns_table, pull_list, us_dictionary, fed_dictionary, num_days)
 
 	# if 'Federal Reserve' | 'FOMC' in pull_list:
@@ -82,8 +91,8 @@ def main():
 	returns_table.drop(returns_table.index[:1], inplace=True)
 
 
-	fed_table = get_fed_data(fed_list, fed_quandl_list, pull_data_days, to_date, auth_tok)
-	fed_table = drop_rows.RSI_sample(fed_table, max_lag)
+	# fed_table = get_fed_data(fed_list, fed_quandl_list, pull_data_days, to_date, auth_tok)
+	# fed_table = drop_rows.RSI_sample(fed_table, max_lag)
 
 	# #Number of days for rollover data
 	# no_days = 60
@@ -96,13 +105,35 @@ def main():
 
 	return regression_table
 
-# def pull_econ_calendar():
-# 	''' import calendar from fxstreet.com '''
+def pull_econ_calendar(today_csv_path, total_csv_path, end_date):
+	''' import calendar from fxstreet.com, convert list of events to list, and append event calendar spreadsheet '''
+	''' This will eventually be established in a google drive instead of locally '''
+	end_date = end_date - timedelta(1)
+	calendar = pd.read_csv(today_csv_path)
+	calendar['DateTime'] = pd.to_datetime(calendar['DateTime'])
+	calendar['Date'] = calendar['DateTime'].apply(lambda x:x.date())
+	calendar = calendar[(calendar['Date'] == end_date) & (calendar['Volatility'] >= 2)]
+	save_calendar = calendar.drop('Date', 1)
+	print save_calendar 
+	
+	with open('event_calendar.csv', 'a') as f:
+		save_calendar.to_csv(f)
 
-# 	calendar = calendar[(calendar['date'] == 'today') & (calendar['volatility'] >= 2)]
-# 	pull_list = event_frame['event_column'].to_list()
-# 	return calendar, pull_list
+	event_list = calendar['Name'].tolist()
+	country_list = calendar['Country'].tolist()
+	return calendar, event_list, country_list 
 
+def pull_econ_data(calendar, num_days, country_list, list_of_quandl_lists, fed_dates= None):
+	for country in country_list:
+		for event in event_list:
+			if calendar[calendar['Country'].str.contains("country") & calendar['Name'].str.contains("event"):
+
+''' dictionary that contains key: quandl name as well as values for country and event name '''
+''' if so, event_list and country_list'''
+
+def get_country_list():
+	country_list = ['Australia', 'Canada', 'China', 'Japan', 'Mexico', 'New Zealand', 'South Africa', 'Singapore', 'United Kingdom', 'United States']
+	return country_list 
 
 def get_currency_quandl_list():
 	currency_quandl_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1',
@@ -226,14 +257,14 @@ def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, a
 	# Initialize data table
 	data_table = None
 	# Run through currencies, first assignment is initialized
-	# Anything past first currency is joined into table
+	# Anything past first currency is joined into table 
 	for currency in currency_quandl_list:
 		current_column = qdl.get(currency, start_date= start_date, end_date= end_date, authtoken= api_key)
+		current_column.columns = [currency]
 		if data_table is None:
 			data_table = current_column
 		else:
 			data_table = data_table.join(current_column, how= 'left', rsuffix= '')
-
 	data_table.columns = currency_list 
 
 	return data_table 
@@ -241,12 +272,11 @@ def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, a
 def merge_with_technicals(currency_list, returns_table, RSI, MACD, Stochastics):
     # Create empty list, will hold dataframes for all currencies
     dataframe_list = []
-    
     for currency in currency_list:
-    	buildup_dataframe = currency_table[currency]
-        buildup_dataframe = buildup_dataframe.join(RSI[currency], how= 'left', rsuffix= '')
-        buildup_dataframe = buildup_dataframe.join(MACD[currency], how='left', rsuffix='')
-        buildup_dataframe = buildup_dataframe.join(stochastics[currency], how='left', rsuffix='')
+    	buildup_dataframe = DataFrame(returns_table[currency])
+        buildup_dataframe = buildup_dataframe.join(RSI[currency], how= 'left', rsuffix= '_RSI')
+        buildup_dataframe = buildup_dataframe.join(MACD[currency], how='left', rsuffix='_MACD')
+        buildup_dataframe = buildup_dataframe.join(Stochastics[currency], how='left', rsuffix='_Stoch')
         dataframe_list.append(buildup_dataframe)
 
     return dataframe_list
