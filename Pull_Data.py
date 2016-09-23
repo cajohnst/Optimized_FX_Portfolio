@@ -17,12 +17,14 @@ def main():
 	fed_list = get_fed_list()
 	fed_quandl_list = get_fed_quandl_list
 
-	end_date = datetime.date.today()
+	end_date = datetime.date.today() - timedelta(3)
 
 #############################################################################################################################
 #Econ_Events data
-	# fxstreet_scraper.main()
-	econ_calendar, pull_list, country_list = pull_econ_calendar("event_calendar_today.csv", "event_calendar.csv", end_date)
+	fxstreet_scraper.main()
+	econ_calendar = pull_econ_calendar("/Users/cajohnst/Coding/event_calendar_today.csv", "/Users/cajohnst/Coding/event_calendar.csv", end_date)
+	print econ_calendar 
+
 #############################################################################################################################
 #RSI_sample data
 	n = 14
@@ -50,10 +52,6 @@ def main():
 	low_table = get_currency_data(currency_list, list_low, num_days, end_date, auth_tok)
 	#Get daily highs from quandl for stochastic oscillator
 	high_table = get_currency_data(currency_list, list_high, num_days, end_date, auth_tok)
-
-	# Specialize data for events!
-	economic_data_dict = get_economic_data_dict()
-	econ_data = pull_economic_data(econ_calendar, currency_table, num_days, economic_data_dict, end_date, auth_tok)
 
 	# #Calculate RSI for all currency pairs in currency_table
 	RSI = RSI_sample.RSI_Calc(currency_table, q)
@@ -103,6 +101,11 @@ def main():
 	# merge_table = merge_tables(returns_table, rollover_table)
 	# merge_table = merge_table.dropna()
 
+	# Specialize data for events!
+	economic_data_dict = get_economic_data_dict()
+	econ_data = pull_economic_data(econ_calendar, returns_table, num_days, economic_data_dict, end_date, auth_tok)
+	print econ_data 
+
 	regression_table = merge_with_technicals(currency_list, returns_table, RSI, macd, fast_stochastic)
 
 	return regression_table
@@ -120,9 +123,7 @@ def pull_econ_calendar(today_csv_path, total_csv_path, end_date):
 	with open('event_calendar.csv', 'a') as f:
 		save_calendar.to_csv(f, index=False)
 
-	event_list = calendar['Name'].tolist()
-	country_list = calendar['Country'].tolist()
-	return calendar, event_list, country_list 
+	return save_calendar
 
 def pull_economic_data(econ_calendar, currency_table, num_days, economic_data_dict, end_date, auth_tok):
 	start_date = end_date - timedelta(num_days)
@@ -133,6 +134,10 @@ def pull_economic_data(econ_calendar, currency_table, num_days, economic_data_di
 			if event_name in economic_data_dict[country]:
 				quandl_name = economic_data_dict[country][event_name]
 				quandl_data = qdl.get(currency, start_date=start_date, end_date=end_date, authtoken=auth_tok)
+				currency_table = currency_table.join(quandl_data, how = 'left', rsuffix = '')
+				currency_table = currency_table.fillna(method = 'ffill')
+
+	return currency_table
 
 
 
