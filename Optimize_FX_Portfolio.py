@@ -18,59 +18,53 @@ def main():
 	np.random.seed(919)
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
-	num_days = 500
+	num_days = 200
 	# rollover_days = 50
 	#Compute returns with shift percentage change delay (daily = 1)
 	shift = 1
 	#Compute returns
-	# currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
-	# returns_table = currency_table.pct_change(periods= shift).dropna()
-	# returns_table.drop(returns_table.index[:1], inplace=True)
+	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
+	returns_table = currency_table.pct_change(periods= shift).dropna()
+	returns_table.drop(returns_table.index[:1], inplace=True)
 
-	n_assets = 10
+	# n_assets = 10
 
-	## NUMBER OF OBSERVATIONS
-	n_obs = 500
+	# ## NUMBER OF OBSERVATIONS
+	# n_obs = 500
 
-	return_vec = np.random.randn(n_assets, n_obs)
-	pbar = opt.matrix(np.mean(return_vec, axis=1))
+	# return_vec = np.random.randn(n_assets, n_obs)
+	# return_vec = return_vec * 100
+	# pbar = opt.matrix(np.mean(return_vec, axis=1))
 
 	# #For simplicity, assume fixed interest rate
-	interest_rate = .02/365
-	print interest_rate 
+	interest_rate = 2/float(365)
 
 	# # Minimum desired return
 
-	rminimum = 2/365
-	print 'R min before function'
-	print rminimum
+	rmin = 50/float(365)
 
-	r_minimum = 2/365
-	print 'R min with underscore?'
-	print r_minimum
+	rollover_table = rollover_google_sheet.pull_data(num_days)
 
-	# rollover_table = rollover_google_sheet.pull_data(num_days)
+	rollover_table = rollover_table / 100
+	# rollover_table['RF'] = 0
 
-	# rollover_table = rollover_table / 10000
-	# # rollover_table['RF'] = 0
+	# # Input Leverage
+	leverage = 10
 
-	# # # Input Leverage
-	# leverage = 10
+	mean_rollover = np.mean(rollover_table, axis=0)
+	mean_rollover = leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
 
-	# mean_rollover = np.mean(rollover_table, axis=0)
-	# mean_rollover = leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
-
-	# merge_table = merge_tables(returns_table, rollover_table)
-	# merge_table = leverage * merge_table.dropna()
-	# merge_table['RF'] = interest_rate 
+	merge_table = merge_tables(returns_table, rollover_table)
+	merge_table = 100 * leverage * merge_table.dropna()
+	merge_table['RF'] = interest_rate 
 
 
 
-	# return_vec = (np.asarray(merge_table).T)
+	return_vec = (np.asarray(merge_table).T) 
 
-	# pbar = opt.matrix(np.mean(return_vec, axis = 1))
-	# pbar = pbar + mean_rollover
-	# print pbar 
+	pbar = opt.matrix(np.mean(return_vec, axis = 1))
+	pbar = pbar + mean_rollover
+	print pbar 
 
 
 	n_portfolios = 5000
@@ -78,7 +72,7 @@ def main():
 
 	#Compute minimum variance portfolio to match desired expected return, print optimal portfolio weights
 	solvers.options['show_progress'] = False
-	weights, returns_rmin, risks_rmin, expected_return, expected_std= OptimalWeights(return_vec, rminimum, pbar)
+	weights, returns_rmin, risks_rmin, expected_return, expected_std= OptimalWeights(return_vec, rmin, pbar)
 	risks, returns = EfficientFrontier(return_vec, pbar)
 	print weights
 	print 'Expected Vol'
@@ -87,15 +81,6 @@ def main():
 	print expected_return
 	print 'RMin Returns'
 	print returns_rmin
-
-
-	plt.plot(stds, means, 'o')
-	plt.plot(risks, returns, 'y-o')
-	plt.plot(expected_std, expected_return, 'r*', ms= 16)
-	plt.ylabel('Expected Return')
-	plt.xlabel('Expected Volatility')
-	plt.title('Portfolio Efficient Frontier')
-	plt.show()
 
 
 	# return weights, returns_rmin, risks_rmin
