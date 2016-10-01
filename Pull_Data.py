@@ -11,12 +11,12 @@ import fxstreet_scraper
 import sklearn as sklearn
 from sklearn import preprocessing
 from sklearn.linear_model import Ridge
-from Optimize_FX_Portfolio import interest_rate
 
 def main():
 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 
 	num_days = 720
+	leverage = 10 
 
 	# country_list = get_country_list()
 	currency_list = get_currency_list()
@@ -90,28 +90,20 @@ def main():
 	shift = 1
 	returns_table = currency_table.pct_change(periods= shift).dropna()
 	returns_table.drop(returns_table.index[:1], inplace=True)
+	returns_table = 100 * leverage * returns_table 
 
-	returns_table_pred = returns_table.copy()
-	returns_table_pred = returns_table_pred.shift(periods = -1, axis = 0) * 100 
+	# returns_table_pred = returns_table.copy()
+	# returns_table_pred = returns_table_pred.shift(periods = -1, axis = 0)
 
-	# #Number of days for rollover data
-	# no_days = 60
-	# rollover_table = rollover_google_sheet.pull_data(no_days)
-	# rollover_table = rollover_table / 10000
-	# merge_table = merge_tables(returns_table, rollover_table)
-	# merge_table = merge_table.dropna()
 	fed_table = get_fed_data(fed_list, num_days, end_date, auth_tok)
 
 	# Specialize data for events!
 	economic_data_dict = get_economic_data_dict()
 	all_fundamentals_table = query_past_economic_data(econ_calendar_today, econ_calendar_full, fed_table, economic_data_dict)
-	# all_fundamentals_table = fed_table.join(econ_data, how= 'left', rsuffix= '')
-	# print all_fundamentals_table
 
 	regression_table = merge_with_technicals(currency_list, returns_table, all_fundamentals_table, RSI, macd, fast_stochastic, beg_date, stoch_date)
-	reg_table, return_predictions = predict_returns(regression_table)
 
-	return return_predictions
+	return regression_table 
 
 def query_past_economic_data(calendar_today, calendar_full, fed_table, economic_data_dict):
 	for index, values in calendar_today.iterrows():
@@ -122,12 +114,12 @@ def query_past_economic_data(calendar_today, calendar_full, fed_table, economic_
 				pull_events = calendar_full[(calendar_full['Country'] == country) & (calendar_full['Name'] == event_name)]
 				fed_table = fed_table.join(pull_events['Deviation'], how = 'left', rsuffix = ' of {0}'.format(event_name))
 				fed_table = fed_table.fillna(value = 0)
+			else:
+				print ' *** {0} not a listed event for {1} in the Economic Dictionary ***'.format(event_name, country)
+		else:
+			print ' *** {0} is not a country in the Economic Dictionary ***'.format(country)
 
 	return fed_table 
-
-# def get_country_list():
-# 	country_list = ['Australia', 'Canada', 'China', 'Japan', 'Mexico', 'New Zealand', 'South Africa', 'Singapore', 'United Kingdom', 'United States']
-# 	return country_list 
 
 def get_currency_quandl_list():
 	currency_quandl_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1',
@@ -138,10 +130,6 @@ def get_currency_list():
 	currency_list = ['MXN/USD', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
 	return currency_list 
 
-# def get_us_quandl_list():
-# 	us_quandl_list = ['fred/cpiaucsl', 'fred/cpilfesl', 'fred/payems', 'umich/soc1', 'bkrhughes/rigs_by_state_totalus_total', 'fred/napm', 'fred/dgorder', 'fred/rsafs', 'fred/icsa', 'adp/empl_sec', 'fred/gdp', 'fred/unrate', 'fred/m2', 'fred/houst', 'fred/dgs10']
-# 	return us_quandl_list
-
 
 def get_economic_data_dict():
 	# Dictonary keys are the country name
@@ -149,10 +137,40 @@ def get_economic_data_dict():
 	economic_data_dict = {
 	'United States': 
 		['Consumer Price Index (YoY)', 'Consumer Price Index Ex Food & Energy (YoY)', 'Nonfarm Payrolls', 'Reuters/Michigan Consumer Sentiment Index', 'Baker Hughes US Oil Rig Count', 'Durable Goods Orders', 'Durable Goods Orders ex Transportation', 'Retail Sales (MoM)', 'Initial Jobless Claims', 'ADP', 'Gross Domestic Product Annualized', 'Unemployment Rate', 'M2', 'Housing Starts (MoM)', 'Building Permits (MoM)', '10-Year Note Auction', 
-		'OPEC Meeting', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index', ]
+		'EIA Crude Oil Stocks change', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index']
 	,
-	# 'Japan':
-	# 	([],[]),
+	'Japan':
+		['National Consumer Price Index (YoY)', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)' ]
+	,
+	'European Monetary Union':
+		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI']
+	,
+	'Germany':
+		[]
+	,
+	'Australia':
+		[]
+	,
+	'Canada':
+		[]
+	,
+	'New Zealand':
+		[]
+	,
+	'China':
+		[]
+	,
+	'United Kingdom':
+		[]
+	, 
+	'Italy':
+		[]
+	, 
+	'Switzerland':
+		[]
+	,
+	'France':
+		[]
 	}
 
 	# return_dictionary = dict()
@@ -167,37 +185,6 @@ def get_fed_list():
 	fed_list = ['Federal_Funds_Futures', 'Effective_Funds_Rate']
 	return fed_list 
 
-
-# def pull_economic_data(returns_table, event_calendar, us_dict, fed_dict, num_days):
-# 	today = datetime.date.today()
-# 	end_date = today
-# 	start_date = end_date - timedelta(num_days)
-
-# 	econ_table = returns_table.copy()
-# 	fed_table = None
-
-# 	if 'United States' in event_calendar['country']:
-
-# 		for key, quandl_name in us_dict.items():
-# 			if key in event_list:
-# 				current_column = qdl.get(quandl_name, start_date= start_date, end_date= end_date, authtoken= api_key)
-# 				if 'Consumer Price Index (YoY)' in current_column.columns:
-# 					current_column = current_column.pct_change(shift= 12).dropna()
-# 				if 'Consumer Price Index Ex Food & Energy (YoY)' in current_column.columns:
-# 					current_column = current_column.pct_change(shift = 12).dropna()
-# 				if 'Consumer Price Index (MoM)' in current_column.columns:
-# 					current_column = current_column.pct_change().dropna()
-# 				if 'Consumer Price Index Ex Food & Energy (MoM)' in current_column.columns:
-# 					current_column = current_column.pct_change().dropna()
-# 				else:
-# 					current_column = current_column.diff(periods = 1)
-# 				current_column.columns = ['key']
-# 				if econ_table = None:
-# 					econ_table= current_column
-# 				else:
-# 					econ_table = econ_table.join(current_column, how= 'left', rsuffix = '')
-
-# 	return econ_table
 
 def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, api_key):
 	# Calculate dates
@@ -248,35 +235,7 @@ def merge_with_technicals(currency_list, returns_table, fundamentals_table, RSI,
 
 	return dataframe_list
 
-def predict_returns(regression_table):
-	pred_pbar = []
-	r_squares = []
-	for dataframe in regression_table:
-		dataframe = dataframe.dropna()
-		clf = Ridge(alpha=0.1, normalize = True)
-		ret = dataframe.iloc[:-1, 0:1].copy()
-		X = dataframe.iloc[:-1, 1:].copy()
-		clf.fit(X, ret)
-		x_test = dataframe.iloc[-1:, 1:].copy()
-		y_test = dataframe.iloc[-1:, 0:1].copy()
-		pred = clf.predict(x_test)
-		pred_pbar_to_float = float(pred[0])
-		pred_pbar.append(pred_pbar_to_float)
-		r_square_to_float = float(clf.score(x_test, y_test))
-		r_squares.append(r_square_to_float)
-	new_list = []
-	for pred in pred_pbar:
-		short = -pred 
-		new_list.append(pred)
-		new_list.append(short)
-	new_list.append(interest_rate)
-	print new_list 
 
-	# print 'pbar predictions'
-	# print pred_pbar
-	# print 'rsquared'
-	# print r_squares
-	return regression_table, pred_pbar, new_list
 
 
 	
