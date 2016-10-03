@@ -1,0 +1,3 @@
+name: Optimize_FX_Portfolio
+dependencies:
+	- cvxopt
