@@ -54,7 +54,6 @@ def bootstrap_sheet(wks):
 
 
 def update_spreadsheet(wks):
-    today = date.today()
     num_rows = wks.row_count
     
     bootstrap_sheet(wks)
@@ -70,6 +69,9 @@ def update_spreadsheet(wks):
             # Check if we have an empty spreadsheet
             if current_row > 2:
                 continue
+        # row contains actual data
+        else:
+            row[0] = row[0].split(' ')[0]
         if current_row > num_rows:
             wks.append_row(row)
             num_rows += 1
@@ -84,23 +86,17 @@ def update_spreadsheet(wks):
     
 
 def pull_data(num_days):
+    end_date = date.today()
+    start_date = end_date - timedelta(num_days)
     wks = setup_credentials()
-    current_row = wks.acell('A1').value
-    latest_entry = int(wks.acell('A1').value) - 1
-    if num_days > latest_entry:
-        start_row = 2
-    else:
-        start_row = latest_entry - num_days
+    
+    csv_file = wks.export(format='csv')
+    csv_buffer = StringIO.StringIO(csv_file)
+    fxstreet_data = pd.read_csv(csv_buffer, header=1, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    columns = [x for x in wks.row_values(1) if x]
-    rollover_table = pd.DataFrame(columns=columns)
-    for row_index in range(start_row, latest_entry + 1):
-        row_data = pd.to_datetime(wks.row_values(row_index)[0])
-        row_date = [float(x) for x in wks.row_values(row_index)[1:] if x]
-        rollover_values = [row_data] + row_date
-        rollover_table.loc[row_index - 2] = rollover_values
-    rollover_table = rollover_table.set_index(current_row)
-    return rollover_table
+    filtered_data = fxstreet_data.ix(start_date:end_date)
+
+    return filtered_data
 
 
 def increment_letter(letter, amount):
