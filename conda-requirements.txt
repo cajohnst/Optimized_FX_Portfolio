@@ -5,3 +5,6 @@ scikit-learn
 scipy
 pandas
 matplotlib
+bs4
+selenium
+gspread
