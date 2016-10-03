@@ -1,7 +1,6 @@
 beautifulsoup4==4.5.1
 bs4==0.0.1
 cffi==1.8.3
-cryptography==1.5.2
 cvxopt==1.1.8
 cycler==0.10.0
 enum34==1.1.6
