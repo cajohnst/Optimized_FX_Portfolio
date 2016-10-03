@@ -1,9 +1,11 @@
 import gspread
+import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from datetime import date
 import os
 from rollover_scraper import generate_rollover
+import Optimize_FX_Portfolio
 
 on_heroku = False
 
@@ -11,18 +13,15 @@ if 'DYNO' in os.environ:
 	on_heroku = True
 
 def main():
-	# Dictionary matching sheet labels to currency.  Short then long. 
-	# Ex: USD/MXN - S is in column B, USD/MXN - L is in column C
-	column_dictionary = {'USD/MXN': 'B', 'USD/CAD': 'D', 'NZD/USD': 'F', 'USD/HKD': 'H', 'USD/JPY': 'J', 'USD/SGD': 'L', 'GBP/USD': 'N', 'USD/ZAR': 'P', 'AUD/USD': 'R', 'EUR/USD': 'T'}
-
+	currency_list = Optimize_FX_Portfolio.get_currency_list()
 	wks = setup_credentials()
 
 	if on_heroku:
-		update_spreadsheet(wks, column_dictionary)
+		update_spreadsheet(wks, currency_list)
 	else:
 		request = raw_input('Enter Y to update the spreadsheet: ')
 		if request is 'Y' or request is 'y':
-			update_spreadsheet(wks, column_dictionary)
+			update_spreadsheet(wks, currency_list)
 
 def setup_credentials():
 	scope = ['https://spreadsheets.google.com/feeds']
@@ -34,11 +33,12 @@ def setup_credentials():
 
 	gc = gspread.authorize(credentials)
 
-	# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	if on_heroku:
 		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 	else:
-		wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
+		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
+
+		# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	return wks
 
 def setup_keyfile_dict():
@@ -51,40 +51,63 @@ def setup_keyfile_dict():
 
 	return keyfile_dict
 
-def update_spreadsheet(wks, column_dictionary):
-	today= date.today()
+def update_spreadsheet(wks, currency_list):
+	today = date.today()
+	# If new spreadsheet, update current row indicator
 	if wks.acell('A1').value == '':
 		wks.update_acell('A1', 2)
-	current_row= wks.acell('A1').value
-	rollover_table= generate_rollover()
+	current_row = wks.acell('A1').value
+	# generate the rollover table
+	rollover_table = generate_rollover(currency_list)
+
+	# calculate the last column based on the size of the rollover table
+	last_column = (increment_letter('B', (len(rollover_table) * 2) - 1))
 
 	if wks.acell('B1').value == '':
-		populate_columns(wks, rollover_table, column_dictionary)
+		populate_columns(wks, rollover_table, last_column)
 	wks.update_acell('A' + current_row, today)
-	for name, short_val, long_val in rollover_table:
-		current_column= column_dictionary[name]
-		wks.update_acell(current_column + current_row, short_val)
-		current_column= increment_letter(current_column)
-		wks.update_acell(current_column + current_row, long_val)
+
+	cell_range = 'B' + current_row + ':' + last_column + current_row
+	cell_list = wks.range(cell_range)
+	for index, currency_data in enumerate(rollover_table):
+		cell_list[(index * 2)].value = currency_data[1]
+		cell_list[(index * 2) + 1].value = currency_data[2]
+	wks.update_cells(cell_list)
+
 	wks.update_acell('A1', int(current_row) + 1)
 
-def populate_columns(wks, rollover_table, column_dictionary):
-	for name, short_val, long_val in rollover_table:
-		short_name = name + ' - S'
-		long_name = name + ' - L'
-		current_column = column_dictionary[name]
-		wks.update_acell(current_column+'1', short_name)
-		current_column = increment_letter(current_column)
-		wks.update_acell(current_column+'1', long_name)
+def populate_columns(wks, rollover_table, last_column):
+	cell_list = wks.range('B1:' + last_column + '1')
+	for index, currency_data in enumerate(rollover_table):
+		short_name = currency_data[0] + ' - S'
+		long_name = currency_data[0] + ' - L'
+		cell_list[(index * 2)].value = short_name
+		cell_list[(index * 2) + 1].value = long_name
+	wks.update_cells(cell_list)
 
-def pull_data():
+def pull_data(num_days):
 	wks = setup_credentials()
+	current_row = wks.acell('A1').value
+	latest_entry = int(wks.acell('A1').value) - 1
+	if num_days > latest_entry:
+		start_row = 2
+	else:
+		start_row = latest_entry - num_days
+
+	columns = [x for x in wks.row_values(1) if x]
+	rollover_table = pd.DataFrame(columns=columns)
+	for row_index in range(start_row, latest_entry + 1):
+		row_data = pd.to_datetime(wks.row_values(row_index)[0])
+		row_date = [float(x) for x in wks.row_values(row_index)[1:] if x]
+		rollover_values = [row_data] + row_date
+		rollover_table.loc[row_index - 2] = rollover_values
+	rollover_table = rollover_table.set_index(current_row)
+	return rollover_table
 
 
-
-def increment_letter(letter):
+def increment_letter(letter, amount):
 	cur = ord(letter)
-	return chr(cur+1)
+	return chr(cur+amount)
 
 if __name__ == "__main__":
 	main()
