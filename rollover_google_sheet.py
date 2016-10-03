@@ -5,7 +5,6 @@ import datetime
 from datetime import date
 import os
 from rollover_scraper import generate_rollover
-import Optimize_FX_Portfolio
 
 on_heroku = False
 
@@ -13,7 +12,7 @@ if 'DYNO' in os.environ:
 	on_heroku = True
 
 def main():
-	currency_list = Optimize_FX_Portfolio.get_currency_list()
+	currency_list = get_currency_list()
 	wks = setup_credentials()
 
 	if on_heroku:
@@ -22,6 +21,11 @@ def main():
 		request = raw_input('Enter Y to update the spreadsheet: ')
 		if request is 'Y' or request is 'y':
 			update_spreadsheet(wks, currency_list)
+
+def get_currency_list():
+	currency_list = ['DEXMXUS', 'DEXCAUS', 'DEXUSNZ', 'DEXHKUS', 'DEXJPUS', 'DEXSIUS', 'DEXUSUK', 'DEXSFUS', 'DEXUSAL', 'DEXUSEU']
+	return currency_list
+
 
 def setup_credentials():
 	scope = ['https://spreadsheets.google.com/feeds']
@@ -36,9 +40,9 @@ def setup_credentials():
 	if on_heroku:
 		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 	else:
-		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
+		# wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 
-		# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
+		wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	return wks
 
 def setup_keyfile_dict():
