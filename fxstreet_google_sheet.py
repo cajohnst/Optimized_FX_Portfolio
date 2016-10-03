@@ -55,6 +55,7 @@ def bootstrap_sheet(wks):
 
 def update_spreadsheet(wks):
     today = date.today()
+    num_rows = wks.row_count
     
     bootstrap_sheet(wks)
     current_row = int(wks.acell('A1').value)
@@ -64,15 +65,19 @@ def update_spreadsheet(wks):
     csv_reader = csv.reader(csv_data)
     
     for csv_index, row in enumerate(csv_reader):
-        cell_list = wks.range('A' + str(current_row) + ':G' + str(current_row))
         # are we in the first row of the csv data? aka(column names)
         if csv_index == 0:
             # Check if we have an empty spreadsheet
             if current_row > 2:
                 continue
-        for row_index, data in enumerate(row):
-            cell_list[row_index].value = data
-        wks.update_cells(cell_list)
+        if current_row > num_rows:
+            wks.append_row(row)
+            num_rows += 1
+        else:
+            cell_list = wks.range('A' + str(current_row) + ':G' + str(current_row))
+            for row_index, data in enumerate(row):
+                cell_list[row_index].value = data
+            wks.update_cells(cell_list)
         current_row += 1
 
     wks.update_acell('A1', current_row)
