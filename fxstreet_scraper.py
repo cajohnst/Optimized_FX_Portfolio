@@ -16,14 +16,14 @@ def main():
 
 	'''
 
-	get_csv(today)
+	csv_data = get_csv(today)
 
-	delete_predictions = pd.read_csv("/Users/cajohnst/Coding/Event_Calendar.csv", index_col = 'DateTime', parse_dates= True, infer_datetime_format = True)
-	delete_predictions = delete_predictions.ix[:yesterdays_date, :]
-	delete_predictions.to_csv("/Users/cajohnst/Coding/Event_Calendar.csv")
-	calendar = merge_csv("/Users/cajohnst/Coding/event_calendar_today.csv")
+	# delete_predictions = pd.read_csv("/Users/cajohnst/Coding/Event_Calendar.csv", index_col = 'DateTime', parse_dates= True, infer_datetime_format = True)
+	# delete_predictions = delete_predictions.ix[:yesterdays_date, :]
+	# delete_predictions.to_csv("/Users/cajohnst/Coding/Event_Calendar.csv")
+	# calendar = merge_csv("/Users/cajohnst/Coding/event_calendar_today.csv")
 
-	return calendar 
+	return csv_data
 
 def get_csv(today):
 	headers = {
@@ -45,10 +45,9 @@ def get_csv(today):
 	csv_encode = csv_data.text.encode('utf-8')
 	
 	with open('event_calendar_today.csv', 'w') as csv_file:
-		for row in csv_encode.split('/r/n'):
-			csv_file.write(row)
+		csv_file.write(csv_encode)
 
-	return csv_data  
+	return csv_encode
 
 def merge_csv(today_calendar, sep = ","):
 
