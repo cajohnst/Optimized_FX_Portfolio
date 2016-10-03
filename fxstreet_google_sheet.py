@@ -2,7 +2,7 @@ import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-from datetime import date
+from datetime import date, timedelta
 import os
 import fxstreet_scraper
 import StringIO
@@ -94,7 +94,7 @@ def pull_data(num_days):
     csv_buffer = StringIO.StringIO(csv_file)
     fxstreet_data = pd.read_csv(csv_buffer, header=1, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    filtered_data = fxstreet_data.ix(start_date:end_date)
+    filtered_data = fxstreet_data.ix[start_date:end_date]
 
     return filtered_data
 
