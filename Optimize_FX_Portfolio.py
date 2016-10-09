@@ -37,7 +37,7 @@ def main():
 	# pbar = opt.matrix(np.mean(return_vec, axis=1))
 
 	# #For simplicity, assume fixed interest rate
-	interest_rate = 2/float(365)
+	interest_rate = 0.0
 
 	# # Minimum desired return
 
@@ -111,12 +111,13 @@ def OptimalWeights(returns, rmin, pbar):
 	# Convert to cvxopt matrices
 	S = opt.matrix(np.cov(returns))
 	N=2
-	mus_min=max(min(pbar), 0)
-	mus_max=max(pbar)
-	mus_step=(mus_max - mus_min) / (N-1)
-	mus = [mus_min + i*mus_step for i in range(N)]
+	# mus_min=max(min(pbar), 0)
+	# mus_max=max(pbar)
+	# mus_step=(mus_max - mus_min) / (N-1)
+	# mus = [mus_min + i*mus_step for i in range(N)]
+	mus = [10**(5.0 * t/N - 1.0) for t in range(N)]
 	
-	G = opt.matrix(np.concatenate((-np.transpose(pbar),-np.identity(n)),0))
+	G = opt.matrix(np.concatenate((-np.transpose(pbar),-np.identity(n)),0)) 
 	A = opt.matrix(1.0, (1, n))
 	b = opt.matrix(1.0)
 
@@ -163,7 +164,7 @@ def EfficientFrontier(returns, pbar):
 	mus_max=max(pbar)
 	mus_step=(mus_max - mus_min) / (N-1)
 	mus = [mus_min + i*mus_step for i in range(N)]
-	
+
 	G = opt.matrix(np.concatenate((-np.transpose(pbar),-np.identity(n)),0))
 	A = opt.matrix(1.0, (1, n))
 	b = opt.matrix(1.0)

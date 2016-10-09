@@ -11,6 +11,7 @@ import matplotlib.ticker as mticker
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
+import Pull_Data
 
 #Word of caution, it seems quandl data is imperfect for high and low readings before July, 2016
 
@@ -22,10 +23,11 @@ def main():
 	#Pull data up to this point
 	to_date = datetime.date.today()
 	#List of currencies to pull data for
-	currency_list = get_currency_list()
+	currency_list = Pull_Data.get_currency_list()
+	currency_quandl_list = Pull_Data.get_currency_quandl_list()
 	#Create new lists to pull daily lows and highs for the stochastic oscillator
-	list_high = [high.replace('1', '2') for high in currency_list]
-	list_low = [low.replace('1', '3') for low in currency_list]
+	list_high = [high.replace('1', '2') for high in currency_quandl_list]
+	list_low = [low.replace('1', '3') for low in currency_quandl_list]
 
 	#q = avg. periods for gain/loss
 	q = 14
@@ -60,11 +62,11 @@ def main():
 	pull_data_days = num_days + max_lag
 
 	#Pull data from quandl
-	currency_table = get_currency_data(currency_list, pull_data_days, auth_tok)
+	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, pull_data_days, to_date, auth_tok)
 	#Get daily lows from quandl for stochastic oscillator
-	low_table = get_currency_data(list_low, pull_data_days, auth_tok)
+	low_table = Pull_Data.get_currency_data(currency_list, list_low, pull_data_days, to_date, auth_tok)
 	#Get daily highs from quandl for stochastic oscillator
-	high_table = get_currency_data(list_high, pull_data_days, auth_tok)
+	high_table = Pull_Data.get_currency_data(currency_list, list_high, pull_data_days, to_date, auth_tok)
 
 	# #Calculate RSI for all currency pairs in currency_table
 	RSI = RSI_Calc(currency_table, q)
@@ -155,31 +157,6 @@ def main():
 
 
 	plt.show()
-
-def get_currency_list():
-	currency_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1', 'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
-	return currency_list
-
-''' get_currency_data will be moved to pull_data'''
-def get_currency_data(currency_list, num_days, api_key):
-	# Calculate dates
-	end_date = datetime.date.today()
-	start_date = end_date - timedelta(num_days)
-
-	# Initialize data table
-	data_table = None
-	# Run through currencies, first assignment is initialized
-	# Anything past first currency is joined into table
-	for currency in currency_list:
-		current_column = qdl.get(currency, start_date= start_date, end_date= end_date, authtoken= api_key)
-		if data_table is None:
-			data_table = current_column
-		else:
-			data_table = data_table.join(current_column, how= 'left', rsuffix= ' ')
-
-	data_table.columns = ['MXN/USD', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
-
-	return data_table 
 
 def RSI_Calc(currency_data, q):
 	delta = currency_data.diff()

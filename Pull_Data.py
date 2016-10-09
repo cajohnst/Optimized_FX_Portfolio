@@ -6,11 +6,15 @@ from pandas import Series, DataFrame
 import datetime
 from datetime import timedelta, date
 import rollover_google_sheet
+import fxstreet_google_sheet
 import RSI_sample
 import fxstreet_scraper
 import sklearn as sklearn
 from sklearn import preprocessing
 from sklearn.linear_model import Ridge
+import StringIO
+import csv 
+import import_spot_test
 
 def main():
 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
@@ -30,12 +34,26 @@ def main():
 
 
 #############################################################################################################################
-#Econ_Events data
-	econ_calendar_today = pd.read_csv("/Users/cajohnst/Coding/event_calendar_today.csv", index_col = 'DateTime', parse_dates= True, infer_datetime_format = True)
-	econ_calendar_full = pd.read_csv("/Users/cajohnst/Coding/Event_Calendar.csv", index_col = 'DateTime', parse_dates= True, infer_datetime_format= True, skip_blank_lines= True)  
-	# econ_calendar_full = econ_calendar_full.ix[beg_date:end_date]
+# Pull Events Data
+	econ_calendar_full = pd.DataFrame(fxstreet_google_sheet.pull_data(num_days))
 	econ_calendar_full.Consensus.fillna(econ_calendar_full.Previous, inplace = True)
 	econ_calendar_full['Deviation'] = econ_calendar_full['Actual'] - econ_calendar_full['Consensus']
+
+# #Take today's Economic Events from FXstreet_scraper and format
+	econ_calendar_today = fxstreet_scraper.main()
+	econ_calendar_today = StringIO.StringIO(econ_calendar_today)
+	econ_calendar_today = pd.read_csv(econ_calendar_today, header=0, index_col= False)
+	econ_calendar_today['DateTime'] = pd.to_datetime(econ_calendar_today['DateTime'])
+	econ_calendar_today = econ_calendar_today.set_index('DateTime')
+	econ_calendar_today.index.names = ['DateTime']
+	econ_calendar_today.Consensus.fillna(econ_calendar_today.Previous, inplace = True)
+	econ_calendar_today.dropna(thresh= 5, inplace = True)
+
+	for index, row in econ_calendar_today.iterrows():
+		prediction = raw_input("Prediction for {0} in {1} given the market consensus is {2}.\n Your Prediction:".format(row['Name'], row['Country'], row['Consensus']))
+		econ_calendar_today.set_value(index, 'Actual', prediction)
+ 
+	econ_calendar_full = econ_calendar_full.append(econ_calendar_today)
 
 #############################################################################################################################
 #RSI_sample data
@@ -54,6 +72,10 @@ def main():
 
 	#Pull data from quandl
 	currency_table = get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
+
+	live_rates = import_spot_test.main()
+	currency_table = currency_table.append(live_rates)
+
 	#Get daily lows from quandl for stochastic oscillator
 	low_table = get_currency_data(currency_list, list_low, num_days, end_date, auth_tok)
 	#Get daily highs from quandl for stochastic oscillator
@@ -102,7 +124,7 @@ def main():
 	all_fundamentals_table = query_past_economic_data(econ_calendar_today, econ_calendar_full, fed_table, economic_data_dict)
 
 	regression_table = merge_with_technicals(currency_list, returns_table, all_fundamentals_table, RSI, macd, fast_stochastic, beg_date, stoch_date)
-
+	print regression_table
 	return regression_table 
 
 def query_past_economic_data(calendar_today, calendar_full, fed_table, economic_data_dict):
@@ -127,7 +149,7 @@ def get_currency_quandl_list():
 	return currency_quandl_list
 
 def get_currency_list():
-	currency_list = ['MXN/USD', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
+	currency_list = ['USD/MXN', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
 	return currency_list 
 
 
@@ -136,23 +158,23 @@ def get_economic_data_dict():
 	# Key values are tuples structured as ([list of eventnames from fxstreet], [list of eventnames from quandl])
 	economic_data_dict = {
 	'United States': 
-		['Consumer Price Index (YoY)', 'Consumer Price Index Ex Food & Energy (YoY)', 'Nonfarm Payrolls', 'Reuters/Michigan Consumer Sentiment Index', 'Baker Hughes US Oil Rig Count', 'Durable Goods Orders', 'Durable Goods Orders ex Transportation', 'Retail Sales (MoM)', 'Initial Jobless Claims', 'ADP', 'Gross Domestic Product Annualized', 'Unemployment Rate', 'M2', 'Housing Starts (MoM)', 'Building Permits (MoM)', '10-Year Note Auction', 
-		'EIA Crude Oil Stocks change', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index']
+		['Consumer Price Index (YoY)', 'Consumer Price Index Ex Food & Energy (YoY)', 'Nonfarm Payrolls', 'Reuters/Michigan Consumer Sentiment Index', 'Baker Hughes US Oil Rig Count', 'Durable Goods Orders', 'Durable Goods Orders ex Transportation', 'Retail Sales (MoM)', 'Initial Jobless Claims', 'ADP Employment Change', 'Gross Domestic Product Annualized', 'Unemployment Rate', 'M2', 'Housing Starts (MoM)', 'Building Permits (MoM)', '10-Year Note Auction', 
+		'EIA Crude Oil Stocks change', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index', 'ISM Prices Paid', 'ISM Manufacturing PMI', 'Markit Manufacturing PMI', 'Construction Spending (MoM)', 'Trade Balance', 'ISM Non-Manufacturing PMI', 'Factory Orders (MoM)']
 	,
 	'Japan':
-		['National Consumer Price Index (YoY)', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)' ]
+		['National Consumer Price Index (YoY)', 'Foreign investment in Japan stocks', 'Foreign bond investment', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)' ]
 	,
 	'European Monetary Union':
-		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI']
+		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI', 'Producer Price Index (MoM)', 'Producer Price Index (YoY)', 'Markit Services PMI']
 	,
 	'Germany':
-		[]
+		['Markit Manufacturing PMI', '10-y Bond Auction']
 	,
 	'Australia':
-		[]
+		['TD Securities Inflation (YoY)', 'TD Securities Inflation (MoM)', 'RBA Interest Rate Decision', 'Retail Sales s.a (MoM)']
 	,
 	'Canada':
-		[]
+		['RBC Manufacturing PMI']
 	,
 	'New Zealand':
 		[]
@@ -161,13 +183,13 @@ def get_economic_data_dict():
 		[]
 	,
 	'United Kingdom':
-		[]
+		['Markit Manufacturing PMI', 'PMI Construction']
 	, 
 	'Italy':
 		[]
 	, 
 	'Switzerland':
-		[]
+		['Real Retail Sales (YoY)']
 	,
 	'France':
 		[]
@@ -202,7 +224,8 @@ def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, a
 		else:
 			data_table = data_table.join(current_column, how= 'left', rsuffix= '')
 	data_table.columns = currency_list 
-
+	if 'USD/MXN' in currency_list:
+		data_table['USD/MXN'] = 1 / data_table['USD/MXN']
 	return data_table 
 
 def get_fed_data(fed_reserve_list, num_days, end_date, api_key):
@@ -216,7 +239,7 @@ def get_fed_data(fed_reserve_list, num_days, end_date, api_key):
 	fed_table.columns = fed_reserve_list 
 	fed_table.fillna(method = 'ffill', inplace = True )
 	fed_table['rate_hike_prob_25_basis'] = (((100 - fed_table['Federal_Funds_Futures']) - fed_table['Effective_Funds_Rate'])/ 0.25) * 100
- 	fed_table = fed_table.drop('Federal_Funds_Futures', axis= 1)
+	fed_table = fed_table.drop('Federal_Funds_Futures', axis= 1)
 	fed_table = fed_table.drop('Effective_Funds_Rate', axis= 1)
 
 	return fed_table 

@@ -23,6 +23,7 @@ import matplotlib.ticker as mticker
 import matplotlib.mlab as mlab
 import matplotlib.font_manager as font_manager
 import quandl as qdl 
+import weights_google_sheet
 
 ''' 1. Pull_data ***If num_days > 100, drop Stochastic column ***STATUS: Complete ***
 	2. Run RSI_sample, MACD_sample, Futures_vs_Spot, and Events ***STATUS: Complete ***
@@ -40,87 +41,77 @@ import quandl as qdl
 	'''
 def main():
 ######################################################################################################################
-#Pull and Update data	
-	# fxstreet_scraper.main()
-#Pull Today's Data
-# 	today = datetime.date.today().strftime("%Y%m%d")
-# 	fxstreet_scraper.get_csv(today)
-# #Begin User Input for Predictions of events
-# 	econ_calendar_today = pd.read_csv("event_calendar_today.csv")
-# 	econ_calendar_today.Consensus.fillna(econ_calendar_today.Previous, inplace = True)
-# 	econ_calendar_today.dropna(thresh= 5, inplace = True)
-
-# 	for index, row in econ_calendar_today.iterrows():
-# 		prediction = raw_input("Prediction for {0} in {1} given the market consensus is {2}.\n Your Prediction:".format(row['Name'], row['Country'], row['Consensus']))
-# 		econ_calendar_today.set_value(index, 'Actual', prediction)
- 
-# #Export updated CSV
-# 	econ_calendar_today.to_csv("event_calendar_today.csv", index=False)
-# #Merge predictions to full calendar
-# 	fxstreet_scraper.merge_csv("event_calendar_today.csv")
-	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
-	end_date = datetime.date.today()
-	np.random.seed(919)
+# 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
+# 	end_date = datetime.date.today()
+# 	np.random.seed(919)
 	currency_list = Pull_Data.get_currency_list()
-	currency_quandl_list = Pull_Data.get_currency_quandl_list()
-	num_days = 200
-# 	# rollover_days = 50
-# 	#Compute returns with shift percentage change delay (daily = 1)
-	shift = 1
-# 	#Compute returns
-	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
-	returns_table = currency_table.pct_change(periods= shift).dropna()
-	returns_table.drop(returns_table.index[:1], inplace=True)
-	interest_rate = 2/ float(365)
-	regression_table = Pull_Data.main()
-	pred_pbar = predict_returns(regression_table, interest_rate)
-	pred_pbar = opt.matrix(np.asarray(pred_pbar))
+# 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
+# 	num_days = 200
+# # 	# rollover_days = 50
+# # 	#Compute returns with shift percentage change delay (daily = 1)
+# 	shift = 1
+# # 	#Compute returns
+# 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
+# 	returns_table = currency_table.pct_change(periods= shift).dropna()
+# 	returns_table.drop(returns_table.index[:1], inplace=True)
+# 	interest_rate_prediction = 2/ float(365)
+# 	regression_table = Pull_Data.main()
+# 	pred_pbar = predict_returns(regression_table, interest_rate_prediction)
+# 	pred_pbar = opt.matrix(np.asarray(pred_pbar))
 
-	rmin = 50/float(252)
+# 	rminimum = 100/float(252)
 
-	# # Input Leverage
-	leverage = 10
+# 	# # Input Leverage
+# 	leverage = 10
 
-	rollover_table = rollover_google_sheet.pull_data(num_days)
+# 	rollover_table = rollover_google_sheet.pull_data(num_days)
 
-	rollover_table = rollover_table / 100
-	merge_table = Optimize_FX_Portfolio.merge_tables(returns_table, rollover_table)
-	merge_table = 100 * leverage * merge_table.dropna()
-	merge_table['RF'] = interest_rate
+# 	rollover_table = rollover_table / 100
+# 	merge_table = Optimize_FX_Portfolio.merge_tables(returns_table, rollover_table)
+# 	merge_table = 100 * leverage * merge_table.dropna()
+# 	merge_table['RF'] = interest_rate_prediction
 
-	return_vec = (np.asarray(merge_table).T) 
+# 	return_vector = (np.asarray(merge_table).T) 
 
-	mean_rollover = np.mean(rollover_table, axis=0)
-	mean_rollover = leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
+# 	mean_rollover = np.mean(rollover_table, axis=0)
+# 	mean_rollover = leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
 
-	pbar = pred_pbar + mean_rollover
+# 	pbar = pred_pbar + mean_rollover
+# 	print pbar 
 
 # ######################################################################################################################
 # #Optimize Portfolio before making expected return predictions
 	weights, expected_return, expected_std, risks, returns, means, stds = Optimize_FX_Portfolio.main()
-	pred_weights, pred_return, pred_std = Optimize_FX_Portfolio.OptimalWeights(return_vec, rmin, pbar)
+	# pred_weights, pred_return, pred_std = Optimize_FX_Portfolio.OptimalWeights(return_vector, rminimum, pbar)
+	# predicted_risks, predicted_returns = Optimize_FX_Portfolio.EfficientFrontier(return_vector, pbar)
+	currency_list.append('Risk Free')
+	condensed_weights = consolidate_weights(weights, currency_list)
 
-	condensed_weights = consolidate_weights(weights)
+	wks = weights_google_sheet.setup_credentials()
+	weights_google_sheet.update_spreadsheet(wks, currency_list, condensed_weights)
 	print condensed_weights
+
+
 	
 #  # Save weights in separate sheets or files index by date, columns not as rollover_table columns.  Example: Column: EUR/USD : value = [(EUR/USD -L) - (EUR/USD -S)], RF weight remains as RF.
 
 # ######################################################################################################################
 # # Charts
 	#Charts including Price, RSI, MACD, and Stochastics for each currency pair
-	RSI_sample.main()
+	# RSI_sample.main()
 
 	#Chart displaying the efficient frontier, 5000 random portfolios, and stars for minimum variance given a minimum return
 	#The red star represents a mean-variance portfolio given historical returns, where the green star represents a mean-variance
 	#Portfolio accounting for technical and fundamental daily analysis predictions.
-	plt.plot(stds, means, 'o')
-	plt.plot(risks, returns, 'y-o')
-	plt.plot(expected_std, expected_return, 'r*', ms= 16)
-	plt.plot(pred_std, pred_return, 'g*', ms = 16)
-	plt.ylabel('Expected Return')
-	plt.xlabel('Expected Volatility')
-	plt.title('Portfolio Efficient Frontier')
-	plt.show()
+	# plt.plot(stds, means, 'o')
+	# plt.plot(risks, returns, 'y-o')
+	# plt.plot(predicted_risks, predicted_returns, '-o', color= 'orange')
+	# plt.plot(expected_std, expected_return, 'r*', ms= 16)
+	# plt.plot(pred_std, pred_return, 'g*', ms = 16)
+	# plt.ylabel('Expected Return')
+	# plt.xlabel('Expected Volatility')
+	# plt.title('Portfolio Efficient Frontier')
+	# plt.show()
 
 	''' The following charts require the existence of a weights table and will be uncommented when the weights table is completed. '''
 
@@ -136,10 +127,10 @@ def main():
 	# benchmark_quandl_list = ['GOOG/NYSE_SPY.4']
 
 	# benchmark = get_benchmark(benchmark_list, benchmark_quandl_list, num_days, end_date, auth_tok, shift)
-	# benchmark_sharpe = calc_sharpe(benchmark, interest_rate)
+	# benchmark_sharpe = calc_sharpe(benchmark, interest_rate_prediction)
 
 	# portfolio_returns = weights * returns_table
-	# portfolio_sharpe = calc_sharpe(portfolio_returns, interest_rate)
+	# portfolio_sharpe = calc_sharpe(portfolio_returns, interest_rate_prediction)
 
 
 	# #weighted returns are calculated using element-wise multiplication of the weights table and returns table
@@ -188,7 +179,6 @@ def predict_returns(regression_table, interest_rate):
 		pred = clf.predict(x_test)
 		pred_pbar_to_float = float(pred[0])
 		pred_pbar.append(pred_pbar_to_float)
-	print pred_pbar 
 		# r_square_to_float = float(clf.score(x_test, y_test))
 		# r_squares.append(r_square_to_float)
 	short_list = []
@@ -221,11 +211,15 @@ def get_benchmark(benchmark_list, benchmark_quandl_list, num_days, end_date, api
 
 	return benchmark_returns
 
-def consolidate_weights(weights_array):
-	weights_vector = [(weights_array[2*p +1] - weights_array[2*p]) for p in range(len(weights_array) -1)]
-	weights_vector.append(weights_array[-1])
+def consolidate_weights(weights_array, column_list):
 
-	return weights_vector
+	weights_array = weights_array[:-1]
+	num_weights= len(weights_array)/ 2
+
+	weights_vector = [(weights_array[2*p +1] - weights_array[2*p]).tolist() for p in range(num_weights)]
+	weights_vector.append(weights_array[-1].tolist())
+
+	return weights_vector 
 
 
 

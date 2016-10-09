@@ -6,8 +6,6 @@ import pandas as pd
 
 def main():
 	today = datetime.date.today().strftime("%Y%m%d")
-	yesterdays_date = datetime.date.today() - timedelta(1)
-	# tomorrow = (datetime.date.today() + timedelta(0)).strftime("%Y%m%d")
 
 	'''fxstreet_scraper will be run twice per day, the first time will allow for the user to input predictions 
 	for data releases, which will be appended to the Full Event Calendar and used as predictions in the regression 
@@ -17,12 +15,6 @@ def main():
 	'''
 
 	csv_data = get_csv(today)
-
-	# delete_predictions = pd.read_csv("/Users/cajohnst/Coding/Event_Calendar.csv", index_col = 'DateTime', parse_dates= True, infer_datetime_format = True)
-	# delete_predictions = delete_predictions.ix[:yesterdays_date, :]
-	# delete_predictions.to_csv("/Users/cajohnst/Coding/Event_Calendar.csv")
-	# calendar = merge_csv("/Users/cajohnst/Coding/event_calendar_today.csv")
-
 	return csv_data
 
 def get_csv(today):
@@ -44,21 +36,11 @@ def get_csv(today):
 	csv_data = requests.get(url, headers= headers)
 	csv_encode = csv_data.text.encode('utf-8')
 	
-	with open('event_calendar_today.csv', 'w') as csv_file:
-		csv_file.write(csv_encode)
+	# with open('event_calendar_today.csv', 'w') as csv_file:
+	# 	csv_file.write(csv_encode)
 
 	return csv_encode
 
-def merge_csv(today_calendar, sep = ","):
-
-	calendar = pd.read_csv(today_calendar)
-	calendar['DateTime'] = pd.to_datetime(calendar['DateTime'])
-	calendar['DateTime'] = calendar['DateTime'].apply(lambda x:x.date())
-	with open('Event_Calendar.csv', 'a') as f:
-		f.write('%s\n' %sep)
-		calendar.to_csv(f, index=False, header= None)
-
-	return calendar
 
 if __name__ == "__main__":
 	main()
