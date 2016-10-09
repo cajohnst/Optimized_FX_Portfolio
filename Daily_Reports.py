@@ -87,11 +87,10 @@ def main():
 	currency_list.append('Risk Free')
 	condensed_weights = consolidate_weights(weights, currency_list)
 
-	wks = weights_google_sheet.setup_credentials()
-	weights_google_sheet.update_spreadsheet(wks, currency_list, condensed_weights)
+	weights_google_sheet.main(condensed_weights, 'Prediction')
+	weights_google_sheet.main(condensed_weights, 'Actual')
+
 	print condensed_weights
-
-
 	
 #  # Save weights in separate sheets or files index by date, columns not as rollover_table columns.  Example: Column: EUR/USD : value = [(EUR/USD -L) - (EUR/USD -S)], RF weight remains as RF.
 
@@ -212,29 +211,13 @@ def get_benchmark(benchmark_list, benchmark_quandl_list, num_days, end_date, api
 	return benchmark_returns
 
 def consolidate_weights(weights_array, column_list):
-
-	weights_array = weights_array[:-1]
+	rf = weights_array.pop()
 	num_weights= len(weights_array)/ 2
 
-	weights_vector = [(weights_array[2*p +1] - weights_array[2*p]).tolist() for p in range(num_weights)]
-	weights_vector.append(weights_array[-1].tolist())
+	weights_vector = [weights_array[2*p+1]-weights_array[2*p] for p in range(num_weights)]
+	weights_vector.append(rf)
 
 	return weights_vector 
 
-
-
-
-
-
 if __name__ == "__main__":
 	main()
-
-
-
-
-
-
-
-
-
-

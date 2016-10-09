@@ -4,82 +4,85 @@ from oauth2client.service_account import ServiceAccountCredentials
 import datetime
 from datetime import date
 import os
-import Pull_Data
-import Daily_Reports 
-
+import Pull_Data 
 
 on_heroku = False
 
 if 'DYNO' in os.environ:
-	on_heroku = True
+    on_heroku = True
 
-def main():
-	currency_list = Pull_Data.get_currency_list()
-	wks = setup_credentials()
+def main(weights=None, sheet_name=None):
+    currency_list = Pull_Data.get_currency_list()
+    # Append RF to list
+    currency_list.append('RF')
+    sps = setup_credentials()
 
-	if on_heroku:
-		update_spreadsheet(wks, currency_list)
-	else:
-		request = raw_input('Enter Y to update the spreadsheet: ')
-		if request is 'Y' or request is 'y':
-			update_spreadsheet(wks, currency_list)
-
+#     if on_heroku:
+#         update_spreadsheet(wks, currency_list)
+#     else:
+#         request = raw_input('Enter Y to update the spreadsheet: ')
+#         if request is 'Y' or request is 'y':
+#             update_spreadsheet(wks, currency_list)
+    wks = sps.worksheet(sheet_name)
+    update_spreadsheet(wks, currency_list, weights)
 
 def setup_credentials():
-	scope = ['https://spreadsheets.google.com/feeds']
-	if on_heroku:
-		keyfile_dict = setup_keyfile_dict()
-		credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scope)
-	else:
-		credentials = ServiceAccountCredentials.from_json_keyfile_name('My Project-3b0bc29d35d3.json', scope)
+    scope = ['https://spreadsheets.google.com/feeds']
+    if on_heroku:
+        keyfile_dict = setup_keyfile_dict()
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scope)
+    else:
+        credentials = ServiceAccountCredentials.from_json_keyfile_name('My Project-3b0bc29d35d3.json', scope)
 
-	gc = gspread.authorize(credentials)
+    gc = gspread.authorize(credentials)
 
-	if on_heroku:
-		wks = gc.open_by_key("1DdmBaOlGGdgQRaaI3tQCxj3BEd8kPwaGIHVfMpIoH8I").sheet1
-	else:
-
-		wks = gc.open_by_key("1DdmBaOlGGdgQRaaI3tQCxj3BEd8kPwaGIHVfMpIoH8I").sheet1
-	return wks
+    if on_heroku:
+        sps = gc.open_by_key("1DdmBaOlGGdgQRaaI3tQCxj3BEd8kPwaGIHVfMpIoH8I")
+    else:
+        sps = gc.open_by_key("1DdmBaOlGGdgQRaaI3tQCxj3BEd8kPwaGIHVfMpIoH8I")
+    return sps
 
 def setup_keyfile_dict():
-	keyfile_dict = dict()
-	keyfile_dict['type'] = os.environ.get('TYPE')
-	keyfile_dict['client_email'] = os.environ.get('CLIENT_EMAIL')
-	keyfile_dict['private_key'] = unicode(os.environ.get('PRIVATE_KEY').decode('string_escape'))
-	keyfile_dict['private_key_id'] = os.environ.get('PRIVATE_KEY_ID')
-	keyfile_dict['client_id'] = os.environ.get('CLIENT_ID')
+    keyfile_dict = dict()
+    keyfile_dict['type'] = os.environ.get('TYPE')
+    keyfile_dict['client_email'] = os.environ.get('CLIENT_EMAIL')
+    keyfile_dict['private_key'] = unicode(os.environ.get('PRIVATE_KEY').decode('string_escape'))
+    keyfile_dict['private_key_id'] = os.environ.get('PRIVATE_KEY_ID')
+    keyfile_dict['client_id'] = os.environ.get('CLIENT_ID')
 
-	return keyfile_dict
+    return keyfile_dict
 
-def update_spreadsheet(wks, currency_list, weights_table):
-	today = date.today()
-	# If new spreadsheet, update current row indicator
-	if wks.acell('A1').value == '':
-		wks.update_acell('A1', 2)
-	current_row = wks.acell('A1').value
+def bootstrap_sheet(wks):
+    # If new spreadsheet, update current row indicator
+    if wks.acell('A1').value == '':
+        wks.update_acell('A1', 2)
 
-	# calculate the last column based on the size of the weights table
-	last_column = (increment_letter('B', len(weights_table)))
+def update_spreadsheet(wks, currency_list, weights):
+    today = date.today()
+    bootstrap_sheet(wks)
+    current_row = int(wks.acell('A1').value)
 
-	if wks.acell('B1').value == '':
-		populate_columns(wks, weights_table, last_column, currency_list)
+    # calculate the last column based on the size of the weights table
+    last_column = (increment_letter('B', len(weights)))
 
-	wks.update_acell('A' + current_row, today)
+    if wks.acell('B1').value == '':
+        populate_columns(wks, last_column, currency_list)
+    # Populate date
+    wks.update_acell('A' + str(current_row), today)
 
-	cell_range = 'B' + current_row + ':' + last_column + current_row
-	cell_list = wks.range(cell_range)
-	for index, currency_data in enumerate(weights_table):
-		cell_list[(index)].value = weights_table[index]
-	wks.update_cells(cell_list)
+    cell_range = 'B' + str(current_row) + ':' + last_column + str(current_row)
+    cell_list = wks.range(cell_range)
+    for index, weight in enumerate(weights):
+        cell_list[index].value = weight
+    wks.update_cells(cell_list)
 
-	wks.update_acell('A1', int(current_row) + 1)
+    wks.update_acell('A1', current_row + 1)
 
-def populate_columns(wks, weights_table, last_column, currency_list):
-	cell_list = wks.range('B1:' + last_column + '1') 
-	for currency in currency_list:
-		cell_list.value = currency 
-	wks.update_cells(cell_list)
+def populate_columns(wks, last_column, currency_list):
+    cell_list = wks.range('B1:' + last_column + '1') 
+    for index, currency in enumerate(currency_list):
+        cell_list[index].value = currency 
+    wks.update_cells(cell_list)
 
 def pull_data(num_days):
     end_date = date.today()
@@ -88,16 +91,15 @@ def pull_data(num_days):
     
     csv_file = wks.export(format='csv')
     csv_buffer = StringIO.StringIO(csv_file)
-    fxstreet_data = pd.read_csv(csv_buffer, header=1, index_col=0, parse_dates=True, infer_datetime_format=True)
+    weights_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    filtered_data = fxstreet_data.ix[start_date:end_date]
+    filtered_data = weights_data.ix[start_date:end_date]
 
     return filtered_data
 
-
 def increment_letter(letter, amount):
-	cur = ord(letter)
-	return chr(cur+amount)
+    cur = ord(letter)
+    return chr(cur+amount)
 
 if __name__ == "__main__":
-	main()
+    main()

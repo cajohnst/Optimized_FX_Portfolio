@@ -143,13 +143,13 @@ def OptimalWeights(returns, rmin, pbar):
 	expected_return = [blas.dot(pbar, sol)]
 	expected_std = np.sqrt(sum([blas.dot(sol, S*sol)]))
 	print 'Weights'
-	print np.asarray(sol)
+	print list(sol)
 	print 'Expected Vol'
 	print expected_std
 	print 'Expected Ret'
 	print expected_return
 
-	return np.asarray(sol), expected_return, expected_std
+	return list(sol), expected_return, expected_std
 
 def EfficientFrontier(returns, pbar):
 
@@ -185,3 +185,4 @@ def EfficientFrontier(returns, pbar):
 
 if __name__ == "__main__":
 	main()
+	
