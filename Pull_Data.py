@@ -1,4 +1,5 @@
 ''' Pull all data to be used in Optimize_FX_Portfolio, RSI_sample, MACD_sample, and futures_vs_spot (eventually pull fred economic reports) '''
+import Set_Variables as sv 
 import pandas as pd 
 import quandl as qdl 
 import numpy as np 
@@ -18,23 +19,22 @@ import import_spot_test
 
 def main():
 	# Quandl Authorization key
-	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
-
+	auth_tok = sv.auth_tok
 	# Number of days to pull data for 
 	# ** this num_days is a different value than that used in other files **
-	num_days = 720
+	num_days = sv.num_days_regression 
 	# Leverage multiplier
-	leverage = 10 
+	leverage = sv.leverage
 	# country_list = get_country_list()
 	currency_list = get_currency_list()
 	currency_quandl_list = get_currency_quandl_list()
 	fed_list = get_fed_list()
 	# Last day to retrieve data (most recent is today)
-	end_date = datetime.date.today()
+	end_date = sv.end_date 
 	# Calculate beginning date
 	beg_date = end_date - timedelta(num_days)
 	# ** Before this date, daily high/low data is unreliable and therefore the Stochastic calculation is unreliable **
-	stoch_date = datetime.date(2016, 7, 15)
+	stoch_date = sv.stoch_date
 
 
 #############################################################################################################################
@@ -66,20 +66,20 @@ def main():
 #RSI_sample data
 	#Determine windows for stochastics.  A typical window is 14 periods.  N is the number of windows.  D is the "slow" stochastic window
 	#typically a 3- period moving average of the fast stochastic
-	n = 14
-	d = 3
+	n = sv.n 
+	d = sv.d
 	#Determine the moving average windows for MACD, moving average convergence divergence, as measured by
 	#the difference between slow and fast exponentially weighted moving averages compared to the fastest of 
 	#the three.  Levels are typically 26 for slow, 12 for fast, and 9 for fastest
-	nslow = 26
-	nfast = 12
-	nema = 9
+	nslow = sv.nslow 
+	nfast = sv.nfast 
+	nema = sv.nema 
 	#q = avg. periods for gain/loss
-	q = 14
+	q = sv.q 
 	#Determine windows for simple moving averages to be overlayed on the exchange rate chart.  Levels vary, but widely-used
 	#rolling averages include 10, 20, 50, 100, and 200 day averages
-	ma_slow = 100
-	ma_fast = 20
+	ma_slow = sv.ma_slow 
+	ma_fast = sv.ma_fast 
 
 	# For stochastic data, import daily highs and lows into dataframe from quandl
 	# Highs and Lows are unreliable before stoch_date (and need to be continually monitored)
@@ -128,7 +128,7 @@ def main():
 #################################################################################################################
 	#Create fundamentals, merge tables, perform ridge regression, output daily return predictions
 	# Convert price data to returns and delete NaNs
-	shift = 1
+	shift = sv.shift 
 	returns_table = currency_table.pct_change(periods= shift).dropna()
 	returns_table.drop(returns_table.index[:1], inplace=True)
 	returns_table = 100 * leverage * returns_table 

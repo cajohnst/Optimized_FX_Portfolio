@@ -4,6 +4,7 @@ import Optimize_FX_Portfolio
 import RSI_sample
 import rollover_google_sheet
 import weights_google_sheet
+import Set_Variables as sv
 import matplotlib.pyplot as plt 
 import sklearn as sklearn
 from sklearn import preprocessing
@@ -25,6 +26,7 @@ import matplotlib.font_manager as font_manager
 import quandl as qdl 
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import norm 
+
 
 ######################################################################################################################
 
@@ -109,28 +111,28 @@ The Optimize FX Portfolio Project:
 
 def main():
 	# authorization key for quandl data 
-	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
+	auth_tok = sv.auth_tok
 # Input last day to get returns data for (default is today)
-	end_date = datetime.date.today()
+	end_date = sv.end_date
 	np.random.seed(919)
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
 # Input original portfolio value, used for VaR calculations
-	portfolio_value = 1000
+	portfolio_value = sv.portfolio_value
 # Input number of days to calculate back returns
-	num_days = 200
+	num_days = sv.num_days_optimal_portfolio
 #Compute returns with shift percentage change delay (daily = 1)
-	shift = 1
+	shift = sv.shift
 # Input Leverage
-	leverage = 10
+	leverage = sv.leverage
 # Input Rolling Period for moving averages
-	rolling_period = 50
+	rolling_period = sv.rolling_period
 # Input minimum desired return for portfolio optimization
-	rminimum = 100/float(252)
+	rminimum = sv.rminimum
 # Input risk free interest rate
-	interest_rate_prediction = 2/ float(365)
+	interest_rate = sv.interest_rate
 # Input interval for displaying changes in the weight distribution over time for distribution chart (daily=1, weekly=5)
-	distribution_interval = 5
+	distribution_interval = sv.distribution_interval
 
 #Get currency data and return as percentage returns
 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
@@ -140,12 +142,12 @@ def main():
 # Copy returns and add risk free return to calculate risk metrics and cumulative returns charts
 	actual_returns = returns_table.copy()
 	actual_returns = leverage * 100 * actual_returns
-	actual_returns['RF'] = interest_rate_prediction * 100
+	actual_returns['RF'] = interest_rate * 100
 # Create a list of tables of relevant data to form regression estimates on.  
 # A unique regression table is created for each currency pair in the currency list
 	regression_table = Pull_Data.main()
 # Create list of return predictions for each currency pair based on regression tables, convert list to matrix form for cvxopt.
-	pred_pbar = predict_returns(regression_table, interest_rate_prediction)
+	pred_pbar = predict_returns(regression_table, interest_rate)
 	pred_pbar = opt.matrix(np.asarray(pred_pbar))
 
 # Import rollover table to add to regression return predictions
@@ -153,7 +155,7 @@ def main():
 	rollover_table = rollover_table / 100
 	merge_table = Optimize_FX_Portfolio.merge_tables(returns_table, rollover_table)
 	merge_table = 100 * leverage * merge_table.dropna()
-	merge_table['RF'] = interest_rate_prediction
+	merge_table['RF'] = interest_rate
 
 	return_vector = (np.asarray(merge_table).T) 
 
@@ -220,8 +222,6 @@ def main():
 	
 	
 	# For comparison, import a benchmark asset to compare portfolio sharpe ratios over time as well as VaR analysis
-
-
 	benchmark_list = ['SPY']
 	benchmark_quandl_list = ['GOOG/NYSE_SPY.4']
 
@@ -230,7 +230,7 @@ def main():
 	benchmark_for_VaR = benchmark['Benchmark']
 
 	# Calculate benchmark rolling sharpe ratios
-	benchmark_sharpe = calc_sharpe(benchmark, interest_rate_prediction, rolling_period)
+	benchmark_sharpe = calc_sharpe(benchmark, interest_rate, rolling_period)
 
 
 	# Calculate portfolio returns by multiplying portfolio
@@ -242,7 +242,7 @@ def main():
 	# Calculate cumulative portfolio returns
 	portfolio_cum_ret = (1 + portfolio_returns['Portfolio Returns']).cumprod() -1
 	#Calculate portfolio rolling sharpe ratio
-	portfolio_sharpe = calc_sharpe(portfolio_returns['Portfolio Returns'], interest_rate_prediction, rolling_period)
+	portfolio_sharpe = calc_sharpe(portfolio_returns['Portfolio Returns'], interest_rate, rolling_period)
 
 	#Calculate cumulative benchmark returns
 	benchmark_cum_ret = (1 + benchmark).cumprod() -1 
@@ -279,7 +279,7 @@ def main():
 	#num_bins for number of bins in histogram
 	mu = mean.iloc[-1]
 	sigma = std.iloc[-1]
-	num_bins = 25
+	num_bins = sv.num_bins 
 
 	#Create pandas dataframe with Value at Risk elements
 	VaR_df = pd.concat([var, var_benchmark], axis = 1)

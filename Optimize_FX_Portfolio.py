@@ -9,26 +9,27 @@ from cvxopt import blas, solvers, matrix
 import rollover_google_sheet 
 import matplotlib.pyplot as plt
 import Pull_Data
+import Set_Variables as sv 
 
 def main():
 	# Authorization key for quandl
-	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
+	auth_tok = sv.auth_tok
 	# The last day to import data (most recent is today)
-	end_date = datetime.date.today()
+	end_date = sv.end_date
 	np.random.seed(919)
 	# Get currency lists from Pull_Data
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
 	# Input number of days to retrieve historical rates
-	num_days = 200
+	num_days = sv.num_days_optimal_portfolio 
 	#Compute returns with shift percentage change delay (daily = 1)
-	shift = 1
+	shift = sv.shift
 	# Input Leverage
-	leverage = 10
+	leverage = sv.leverage
 	#For simplicity, assume fixed interest rate (risk free rate)
-	interest_rate = 2/ float(365)
+	interest_rate = sv.interest_rate
 	# Minimum desired return
-	rmin = 50/float(252)
+	rmin = sv.rmin
 
 	#Compute returns
 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
@@ -54,7 +55,7 @@ def main():
 	# Add mean returns from currency pairs as well as rollovers
 	pbar = pbar + mean_rollover
 	# Input number of random portfolios to calculate
-	n_portfolios = 5000
+	n_portfolios = sv.n_portfolios
 	# Calculate expected returns and standard deviation tuples for randomly weighted portfolios
 	means, stds = np.column_stack([random_portfolio(return_vec) for _ in xrange(n_portfolios)])
 
@@ -64,6 +65,7 @@ def main():
 	risks, returns = EfficientFrontier(return_vec, pbar)
 
 	return weights, expected_return, expected_std, risks, returns, means, stds
+
 
 def merge_tables(returns_table, rollover_table):
 	#Merge returns table and rollover tables, this is merely for formatting until rollover table is large.
@@ -94,6 +96,7 @@ def random_portfolio(returns_table):
 	sigma = np.sqrt(w * C * w.T)
 	return mu, sigma
 
+
 def OptimalWeights(returns, rmin, pbar):
 	n = len(returns)
 	returns = np.asmatrix(returns)
@@ -118,7 +121,6 @@ def OptimalWeights(returns, rmin, pbar):
 	# Calculate efficient frontier weights using quadratic programming
 	portfolios = [solvers.qp(S, -pbar, G, h, A, b)['x'] for mu in mus]
 
-
 	# Calculate risks and returns for the minimum return portfolio
 	returns_rmin = [blas.dot(pbar, x) for x in portfolios]
 	risks_rmin = [np.sqrt(blas.dot(x, S*x)) for x in portfolios]
@@ -141,6 +143,7 @@ def OptimalWeights(returns, rmin, pbar):
 	print expected_return
 
 	return list(sol), expected_return, expected_std
+
 
 def EfficientFrontier(returns, pbar):
 

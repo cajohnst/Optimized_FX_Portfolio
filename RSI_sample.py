@@ -1,3 +1,4 @@
+import Set_Variables as sv 
 import pandas as pd 
 from pandas import DataFrame
 import quandl as qdl
@@ -17,12 +18,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 #Word of caution, it seems quandl data is imperfect for high and low readings before July, 2016
 
 def main():
-	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
-
+	auth_tok = sv.auth_tok
 	#Number of days worth of data useable for charts or regression analysis
-	num_days = 100
+	num_days = sv.num_days_charts
 	#Pull data up to this point
-	to_date = datetime.date.today()
+	to_date = sv.to_date
 	#List of currencies to pull data for
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
@@ -31,31 +31,31 @@ def main():
 	list_low = [low.replace('1', '3') for low in currency_quandl_list]
 
 	#q = avg. periods for gain/loss
-	q = 14
+	q = sv.q
 	# On the scale from 0-100, this level is considered to be "overbought" by RSI, typical value is 70
-	Overbought = 70
+	Overbought = sv.Overbought
 	#On the scale from 0-100, this level is considered to be "oversold" by RSI, typical value is 30
-	Oversold = 30
+	Oversold = sv.Oversold
 
 	#Determine the moving average windows for MACD, moving average convergence divergence, as measured by
 	#the difference between slow and fast exponentially weighted moving averages compared to the fastest of 
 	#the three.  Levels are typically 26 for slow, 12 for fast, and 9 for fastest
-	nslow = 26
-	nfast = 12
-	nema = 9
+	nslow = sv.nslow 
+	nfast = sv.nfast 
+	nema = sv.nema 
 
 	#Determine windows for simple moving averages to be overlayed on the exchange rate chart.  Levels vary, but widely-used
 	#rolling averages include 10, 20, 50, 100, and 200 day averages
-	ma_slow = 100
-	ma_fast = 20
+	ma_slow = sv.ma_slow 
+	ma_fast = sv.ma_fast 
 
 	#Determine windows for stochastics.  A typical window is 14 periods.  N is the number of windows.  D is the "slow" stochastic window
 	#typically a 3- period moving average of the fast stochastic
-	n = 14
-	d = 3
+	n = sv.n 
+	d = sv.d 
 
-	Overbought_S = 80
-	Oversold_S = 20
+	Overbought_S = sv.Overbought_S 
+	Oversold_S = sv.Oversold_S
 
 	max_lag = max(q, nslow, nfast, nema, ma_slow, ma_fast, n, d)
 
