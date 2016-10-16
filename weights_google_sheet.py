@@ -7,6 +7,7 @@ import StringIO
 import csv
 import os
 import Pull_Data 
+import Set_Variables as sv 
 
 on_heroku = False
 
@@ -87,7 +88,7 @@ def populate_columns(wks, last_column, currency_list):
     wks.update_cells(cell_list)
 
 def pull_data(num_days, sheet_name):
-    end_date = date.today()
+    end_date = sv.end_date 
     start_date = end_date - timedelta(num_days)
     sps = setup_credentials()
     wks = sps.worksheet(sheet_name)

@@ -7,6 +7,7 @@ import os
 import fxstreet_scraper
 import StringIO
 import csv
+import Set_Variables as sv 
 
 on_heroku = False
 
@@ -86,7 +87,7 @@ def update_spreadsheet(wks):
     
 
 def pull_data(num_days):
-    end_date = date.today()
+    end_date = sv.end_date 
     start_date = end_date - timedelta(num_days)
     wks = setup_credentials()
     

@@ -29,7 +29,7 @@ def main():
 	#For simplicity, assume fixed interest rate (risk free rate)
 	interest_rate = sv.interest_rate
 	# Minimum desired return
-	rmin = sv.rmin
+	rmin = sv.rminimum
 
 	#Compute returns
 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)

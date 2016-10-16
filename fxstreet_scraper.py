@@ -2,10 +2,12 @@ import requests
 import datetime
 from datetime import date, timedelta
 import pandas as pd 
+import Set_Variables as sv 
 # Hardcoded currencies, to be changed
 
 def main():
-	today = datetime.date.today().strftime("%Y%m%d")
+	today = sv.end_date
+	today = today.strftime("%Y%m%d")
 
 	'''fxstreet_scraper will be run twice per day, the first time will allow for the user to input predictions 
 	for data releases, which will be appended to the Full Event Calendar and used as predictions in the regression 
