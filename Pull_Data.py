@@ -17,26 +17,32 @@ import csv
 import import_spot_test
 
 def main():
+	# Quandl Authorization key
 	auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 
+	# Number of days to pull data for 
+	# ** this num_days is a different value than that used in other files **
 	num_days = 720
+	# Leverage multiplier
 	leverage = 10 
-
 	# country_list = get_country_list()
 	currency_list = get_currency_list()
 	currency_quandl_list = get_currency_quandl_list()
 	fed_list = get_fed_list()
-	# fed_quandl_list = get_fed_quandl_list
-
+	# Last day to retrieve data (most recent is today)
 	end_date = datetime.date.today()
+	# Calculate beginning date
 	beg_date = end_date - timedelta(num_days)
+	# ** Before this date, daily high/low data is unreliable and therefore the Stochastic calculation is unreliable **
 	stoch_date = datetime.date(2016, 7, 15)
 
 
 #############################################################################################################################
-# Pull Events Data
+	# Import events data into pandas dataframe
 	econ_calendar_full = pd.DataFrame(fxstreet_google_sheet.pull_data(num_days))
+	# If no consensus value exists, use the previous value to fill its place.
 	econ_calendar_full.Consensus.fillna(econ_calendar_full.Previous, inplace = True)
+	# Create column 'Deviation' as the actual value on the data release subtracting the market expectation
 	econ_calendar_full['Deviation'] = econ_calendar_full['Actual'] - econ_calendar_full['Consensus']
 
 # #Take today's Economic Events from FXstreet_scraper and format
@@ -49,25 +55,37 @@ def main():
 	econ_calendar_today.Consensus.fillna(econ_calendar_today.Previous, inplace = True)
 	econ_calendar_today.dropna(thresh= 5, inplace = True)
 
+	#Begin raw input of user predictions for data releases (fill 'Actual' column with predictions).
 	for index, row in econ_calendar_today.iterrows():
 		prediction = raw_input("Prediction for {0} in {1} given the market consensus is {2}.\n Your Prediction:".format(row['Name'], row['Country'], row['Consensus']))
 		econ_calendar_today.set_value(index, 'Actual', prediction)
- 
+ 	# Append today's data to the full calendar of releases
 	econ_calendar_full = econ_calendar_full.append(econ_calendar_today)
 
 #############################################################################################################################
 #RSI_sample data
+	#Determine windows for stochastics.  A typical window is 14 periods.  N is the number of windows.  D is the "slow" stochastic window
+	#typically a 3- period moving average of the fast stochastic
 	n = 14
 	d = 3
+	#Determine the moving average windows for MACD, moving average convergence divergence, as measured by
+	#the difference between slow and fast exponentially weighted moving averages compared to the fastest of 
+	#the three.  Levels are typically 26 for slow, 12 for fast, and 9 for fastest
 	nslow = 26
 	nfast = 12
 	nema = 9
+	#q = avg. periods for gain/loss
 	q = 14
+	#Determine windows for simple moving averages to be overlayed on the exchange rate chart.  Levels vary, but widely-used
+	#rolling averages include 10, 20, 50, 100, and 200 day averages
 	ma_slow = 100
 	ma_fast = 20
 
+	# For stochastic data, import daily highs and lows into dataframe from quandl
+	# Highs and Lows are unreliable before stoch_date (and need to be continually monitored)
 	list_high = [high.replace('1', '2') for high in currency_quandl_list]
 	list_low = [low.replace('1', '3') for low in currency_quandl_list]
+	# Maximum of the 'rolling' periods
 	max_lag = max(q, nslow, nfast, nema, ma_slow, ma_fast, n, d)
 
 	#Pull data from quandl
@@ -95,6 +113,7 @@ def main():
 	ma_f = RSI_sample.moving_average(currency_table, ma_fast, type='simple')
 	ma_s = RSI_sample.moving_average(currency_table, ma_slow, type='simple')
 
+	# Drop all NaNs, format data so indexes will match when joined
 	RSI = RSI_sample.drop_rows(RSI, max_lag)
 	ma_f = RSI_sample.drop_rows(ma_f, max_lag)
 	ma_s = RSI_sample.drop_rows(ma_s, max_lag)
@@ -114,20 +133,17 @@ def main():
 	returns_table.drop(returns_table.index[:1], inplace=True)
 	returns_table = 100 * leverage * returns_table 
 
-	# returns_table_pred = returns_table.copy()
-	# returns_table_pred = returns_table_pred.shift(periods = -1, axis = 0)
-
 	fed_table = get_fed_data(fed_list, num_days, end_date, auth_tok)
 
-	# Specialize data for events!
+	# Specialize data for events! Pull all historical data from event calendar which matches name in econ data dictionary.
 	economic_data_dict = get_economic_data_dict()
 	all_fundamentals_table = query_past_economic_data(econ_calendar_today, econ_calendar_full, fed_table, economic_data_dict)
-
+	#Merge the calendar data with the columns of technicals
 	regression_table = merge_with_technicals(currency_list, returns_table, all_fundamentals_table, RSI, macd, fast_stochastic, beg_date, stoch_date)
-	print regression_table
 	return regression_table 
 
 def query_past_economic_data(calendar_today, calendar_full, fed_table, economic_data_dict):
+	# Get all historical data from the full calendar which matches today's data and is found in the econ data dictionary.
 	for index, values in calendar_today.iterrows():
 		country = values['Country']
 		if country in economic_data_dict:
@@ -195,12 +211,6 @@ def get_economic_data_dict():
 		[]
 	}
 
-	# return_dictionary = dict()
-	# for country, (fxstreet_names, quandl_names) in economic_data_dict.iteritems():
-	# 	return_dictionary[country] = {}
-	# 	for index, name in enumerate(fxstreet_names):
-	# 		return_dictionary[country][name] = quandl_names[index]
-
 	return economic_data_dict 
 
 def get_fed_list():
@@ -209,7 +219,7 @@ def get_fed_list():
 
 
 def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, api_key):
-	# Calculate dates
+	# Calculate dates to begin and end
 	start_date = end_date - timedelta(num_days)
 
 	# Initialize data table
@@ -231,18 +241,30 @@ def get_currency_data(currency_list, currency_quandl_list, num_days, end_date, a
 def get_fed_data(fed_reserve_list, num_days, end_date, api_key):
 	# Calculate dates
 	start_date = end_date - timedelta(num_days)
-
+	# Get Federal Funds Futures data and Effective Funds Futures
 	fed_fund_futures = qdl.get('CHRIS/CME_FF1.6', start_date= start_date, end_date= end_date, authtoken= api_key)
 	effective_fund_futures = qdl.get('FRED/DFF', start_date = start_date, end_date= end_date, authtoken= api_key)
 
 	fed_table = fed_fund_futures.join(effective_fund_futures, how= 'left', rsuffix= '')
 	fed_table.columns = fed_reserve_list 
 	fed_table.fillna(method = 'ffill', inplace = True )
+	# Calculate the probability of a rate hike as the difference between rolling federal funds futures and the effective funds rate divided by the amount of the hike.
+	# (Multiplied by 100 for percentage)
 	fed_table['rate_hike_prob_25_basis'] = (((100 - fed_table['Federal_Funds_Futures']) - fed_table['Effective_Funds_Rate'])/ 0.25) * 100
 	fed_table = fed_table.drop('Federal_Funds_Futures', axis= 1)
 	fed_table = fed_table.drop('Effective_Funds_Rate', axis= 1)
 
 	return fed_table 
+
+def get_benchmark(benchmark_list, benchmark_quandl_list, num_days, end_date, api_key, shift):
+	# Get returns of a benchmark asset 
+	start_date = end_date - timedelta(num_days)
+	benchmark_table = qdl.get(benchmark_quandl_list, start_date = start_date, end_date = end_date, authtoken= api_key)
+	benchmark_table.columns = ['Benchmark']
+	benchmark_returns = benchmark_table.pct_change(periods= shift).dropna() * 100 
+	benchmark_returns.drop(benchmark_returns.index[:1], inplace=True)
+
+	return benchmark_returns
 
 def merge_with_technicals(currency_list, returns_table, fundamentals_table, RSI, MACD, Stochastics, beg_date, stoch_date):
 	# Create empty list, will hold dataframes for all currencies
@@ -257,10 +279,6 @@ def merge_with_technicals(currency_list, returns_table, fundamentals_table, RSI,
 		dataframe_list.append(buildup_dataframe)
 
 	return dataframe_list
-
-
-
-
 	
 if __name__ == "__main__":
 	main()

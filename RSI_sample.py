@@ -12,6 +12,7 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as font_manager
 import Pull_Data
+from matplotlib.backends.backend_pdf import PdfPages
 
 #Word of caution, it seems quandl data is imperfect for high and low readings before July, 2016
 
@@ -93,9 +94,10 @@ def main():
 	slow_stochastic = drop_rows(slow_stochastic, max_lag)
 	currency_table = drop_rows(currency_table, max_lag)
 
-
+	daily_charts_pdf = PdfPages('Daily_Charts.pdf')
 	'''These plots will eventually be moved to produce_charts'''
 	for currency in RSI:
+
 		plt.rc('axes', grid=True)
 		plt.rc('grid', color='0.75', linestyle='-', linewidth=0.5)
 
@@ -154,9 +156,9 @@ def main():
 				label.set_horizontalalignment('right')
 
 		ax.fmt_xdata = mdates.DateFormatter('%Y-%m-%d')
+		plt.savefig(daily_charts_pdf, format= 'pdf')
+	daily_charts_pdf.close()
 
-
-	plt.show()
 
 def RSI_Calc(currency_data, q):
 	delta = currency_data.diff()

@@ -2,7 +2,9 @@ import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-from datetime import date
+from datetime import date, timedelta 
+import StringIO
+import csv
 import os
 import Pull_Data 
 
@@ -84,10 +86,11 @@ def populate_columns(wks, last_column, currency_list):
         cell_list[index].value = currency 
     wks.update_cells(cell_list)
 
-def pull_data(num_days):
+def pull_data(num_days, sheet_name):
     end_date = date.today()
     start_date = end_date - timedelta(num_days)
-    wks = setup_credentials()
+    sps = setup_credentials()
+    wks = sps.worksheet(sheet_name)
     
     csv_file = wks.export(format='csv')
     csv_buffer = StringIO.StringIO(csv_file)
