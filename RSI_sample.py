@@ -22,7 +22,7 @@ def main():
 	#Number of days worth of data useable for charts or regression analysis
 	num_days = sv.num_days_charts
 	#Pull data up to this point
-	to_date = sv.to_date
+	end_date = sv.end_date
 	#List of currencies to pull data for
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
@@ -63,11 +63,11 @@ def main():
 	pull_data_days = num_days + max_lag
 
 	#Pull data from quandl
-	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, pull_data_days, to_date, auth_tok)
+	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, pull_data_days, end_date, auth_tok)
 	#Get daily lows from quandl for stochastic oscillator
-	low_table = Pull_Data.get_currency_data(currency_list, list_low, pull_data_days, to_date, auth_tok)
+	low_table = Pull_Data.get_currency_data(currency_list, list_low, pull_data_days, end_date, auth_tok)
 	#Get daily highs from quandl for stochastic oscillator
-	high_table = Pull_Data.get_currency_data(currency_list, list_high, pull_data_days, to_date, auth_tok)
+	high_table = Pull_Data.get_currency_data(currency_list, list_high, pull_data_days, end_date, auth_tok)
 
 	# #Calculate RSI for all currency pairs in currency_table
 	RSI = RSI_Calc(currency_table, q)

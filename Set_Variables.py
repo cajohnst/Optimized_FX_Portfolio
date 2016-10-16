@@ -1,8 +1,10 @@
 #Set variables
+import datetime
+from datetime import date, timedelta
 # authorization key for quandl data 
 auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 # Input last day to get returns data for (default is today)
-end_date = datetime.date.today()
+end_date = datetime.date.today() - timedelta(3)
 # Input original portfolio value, used for VaR calculations
 portfolio_value = 1000
 # Input number of days to calculate back returns
@@ -30,8 +32,6 @@ n_portfolios = 5000
 
 #Number of days worth of data useable for charts or regression analysis
 num_days_charts = 100
-#Pull data up to this point
-to_date = datetime.date.today()
 #q = avg. periods for gain/loss
 q = 14
 # On the scale from 0-100, this level is considered to be "overbought" by RSI, typical value is 70
