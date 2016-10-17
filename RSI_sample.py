@@ -18,11 +18,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 #Word of caution, it seems quandl data is imperfect for high and low readings before July, 2016
 
 def main():
-	auth_tok = sv.auth_tok
-	#Number of days worth of data useable for charts or regression analysis
-	num_days = sv.num_days_charts
-	#Pull data up to this point
-	end_date = sv.end_date
 	#List of currencies to pull data for
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
@@ -30,58 +25,31 @@ def main():
 	list_high = [high.replace('1', '2') for high in currency_quandl_list]
 	list_low = [low.replace('1', '3') for low in currency_quandl_list]
 
-	#q = avg. periods for gain/loss
-	q = sv.q
-	# On the scale from 0-100, this level is considered to be "overbought" by RSI, typical value is 70
-	Overbought = sv.Overbought
-	#On the scale from 0-100, this level is considered to be "oversold" by RSI, typical value is 30
-	Oversold = sv.Oversold
-
-	#Determine the moving average windows for MACD, moving average convergence divergence, as measured by
-	#the difference between slow and fast exponentially weighted moving averages compared to the fastest of 
-	#the three.  Levels are typically 26 for slow, 12 for fast, and 9 for fastest
-	nslow = sv.nslow 
-	nfast = sv.nfast 
-	nema = sv.nema 
-
-	#Determine windows for simple moving averages to be overlayed on the exchange rate chart.  Levels vary, but widely-used
-	#rolling averages include 10, 20, 50, 100, and 200 day averages
-	ma_slow = sv.ma_slow 
-	ma_fast = sv.ma_fast 
-
-	#Determine windows for stochastics.  A typical window is 14 periods.  N is the number of windows.  D is the "slow" stochastic window
-	#typically a 3- period moving average of the fast stochastic
-	n = sv.n 
-	d = sv.d 
-
-	Overbought_S = sv.Overbought_S 
-	Oversold_S = sv.Oversold_S
-
-	max_lag = max(q, nslow, nfast, nema, ma_slow, ma_fast, n, d)
+	max_lag = max(sv.q, sv.nslow, sv.nfast, sv.nema, sv.ma_slow, sv.ma_fast, sv.n, sv.d)
 
 	#Pull this many days of data to return the amount of data user has requested
-	pull_data_days = num_days + max_lag
+	pull_data_days = sv.num_days_charts + max_lag
 
 	#Pull data from quandl
-	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, pull_data_days, end_date, auth_tok)
+	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, pull_data_days, sv.end_date , sv.auth_tok)
 	#Get daily lows from quandl for stochastic oscillator
-	low_table = Pull_Data.get_currency_data(currency_list, list_low, pull_data_days, end_date, auth_tok)
+	low_table = Pull_Data.get_currency_data(currency_list, list_low, pull_data_days, sv.end_date , sv.auth_tok)
 	#Get daily highs from quandl for stochastic oscillator
-	high_table = Pull_Data.get_currency_data(currency_list, list_high, pull_data_days, end_date, auth_tok)
+	high_table = Pull_Data.get_currency_data(currency_list, list_high, pull_data_days, sv.end_date , sv.auth_tok)
 
 	# #Calculate RSI for all currency pairs in currency_table
-	RSI = RSI_Calc(currency_table, q)
+	RSI = RSI_Calc(currency_table, sv.q)
 
 	# #Calculate simple moving averages
-	ma_f = moving_average(currency_table, ma_fast, type='simple')
-	ma_s = moving_average(currency_table, ma_slow, type='simple')
+	ma_f = moving_average(currency_table, sv.ma_fast, type='simple')
+	ma_s = moving_average(currency_table, sv.ma_slow, type='simple')
 
 	#Calculate exponentially weighted moving averages and MACD
-	emaslow, emafast, macd = get_MACD(currency_table, nslow= nslow, nfast = nfast)
-	ema9 = moving_average(macd, nema, type = 'exponential')
+	emaslow, emafast, macd = get_MACD(currency_table, nslow= sv.nslow, nfast = sv.nfast)
+	ema9 = moving_average(macd, sv.nema, type = 'exponential')
 
 	#Calculate stochastics
-	fast_stochastic, slow_stochastic = get_stochastic(currency_table, low_table, high_table, n, d)
+	fast_stochastic, slow_stochastic = get_stochastic(currency_table, low_table, high_table, sv.n, sv.d)
 
 	RSI = drop_rows(RSI, max_lag)
 	ma_f = drop_rows(ma_f, max_lag)
@@ -97,7 +65,7 @@ def main():
 	daily_charts_pdf = PdfPages('Daily_Charts.pdf')
 	'''These plots will eventually be moved to produce_charts'''
 	for currency in RSI:
-
+		fig = plt.figure(facecolor='white')
 		plt.rc('axes', grid=True)
 		plt.rc('grid', color='0.75', linestyle='-', linewidth=0.5)
 
@@ -107,8 +75,6 @@ def main():
 		rect2 = [left, 0.45, width, 0.15]
 		rect3 = [left, 0.3, width, 0.15]
 		rect4 = [left, 0.15, width, 0.15]
-
-		fig = plt.figure(facecolor='white')
 		axescolor = '#f6f6f6'  # the axes background color
 
 		ax1 = fig.add_axes(rect1, axisbg=axescolor)  # left, bottom, width, height
@@ -117,34 +83,34 @@ def main():
 		ax4 = fig.add_axes(rect4, axisbg=axescolor, sharex=ax1)
 
 		ax2.plot(RSI.index, RSI[currency], color='blue')
-		ax2.axhline(Overbought, color='red')
-		ax2.axhline(Oversold, color='green')
+		ax2.axhline(sv.Overbought, color='red')
+		ax2.axhline(sv.Oversold, color='green')
 		ax2.text(0.6, 0.9, '>70 = overbought', va='top', transform=ax2.transAxes, fontsize=textsize)
 		ax2.text(0.6, 0.1, '<30 = oversold', transform=ax2.transAxes, fontsize=textsize)
 		ax2.set_ylim(0, 100)
 		ax2.set_yticks([30, 70])
-		ax2.text(0.025, 0.95, 'RSI (%s)' % q, va='top', transform=ax2.transAxes, fontsize=textsize)
+		ax2.text(0.025, 0.95, 'RSI (%s)' % sv.q, va='top', transform=ax2.transAxes, fontsize=textsize)
 		ax1.set_title('{0} Daily Chart'.format(currency))
 
 		line = ax1.plot(currency_table.index, currency_table[currency], color='black', label='_nolegend_')
 
-		linema20, = ax1.plot(ma_f.index, ma_f[currency], color='blue', lw=2, label='MA (%s)' % ma_fast)
-		linema200 = ax1.plot(ma_s.index, ma_s[currency], color='red', lw=2, label='MA (%s)' % ma_slow)
+		linema20, = ax1.plot(ma_f.index, ma_f[currency], color='blue', lw=2, label='MA (%s)' % sv.ma_fast)
+		linema200 = ax1.plot(ma_s.index, ma_s[currency], color='red', lw=2, label='MA (%s)' % sv.ma_slow)
 
 		ax3.plot(macd.index, macd[currency], color='black', lw=2)
 		ax3.plot(ema9.index, ema9[currency], color='blue', lw=1)
 		ax3.fill_between(macd.index, macd[currency] - ema9[currency], 0, alpha=0.5, facecolor='red', edgecolor= 'maroon')
-		ax3.text(0.025, 0.95, 'MACD (%d, %d, %d)' % (nfast, nslow, nema), va='top', transform=ax3.transAxes, fontsize=textsize)
+		ax3.text(0.025, 0.95, 'MACD (%d, %d, %d)' % (sv.nfast, sv.nslow, sv.nema), va='top', transform=ax3.transAxes, fontsize=textsize)
 
 		ax4.plot(fast_stochastic.index, fast_stochastic[currency], color='blue')
 		ax4.plot(slow_stochastic.index, slow_stochastic[currency], color= 'yellow')
-		ax4.axhline(Overbought_S, color='red')
-		ax4.axhline(Oversold_S, color='green')
+		ax4.axhline(sv.Overbought_S, color='red')
+		ax4.axhline(sv.Oversold_S, color='green')
 		ax4.text(0.6, 0.9, '>80 = overbought', va='top', transform=ax4.transAxes, fontsize=textsize)
 		ax4.text(0.6, 0.1, '<20 = oversold', transform=ax4.transAxes, fontsize=textsize)
 		ax4.set_ylim(0, 100)
 		ax4.set_yticks([20, 80])
-		ax4.text(0.025, 0.95, 'Stochastic (%s)' % n, va='top', transform=ax4.transAxes, fontsize=textsize)
+		ax4.text(0.025, 0.95, 'Stochastic (%s)' % sv.n, va='top', transform=ax4.transAxes, fontsize=textsize)
 		# turn off upper axis tick labels, rotate the lower ones, etc
 		for ax in ax1, ax2, ax3, ax4:
 			if ax != ax4:
@@ -157,6 +123,7 @@ def main():
 
 		ax.fmt_xdata = mdates.DateFormatter('%Y-%m-%d')
 		plt.savefig(daily_charts_pdf, format= 'pdf')
+		plt.close(fig)
 	daily_charts_pdf.close()
 
 

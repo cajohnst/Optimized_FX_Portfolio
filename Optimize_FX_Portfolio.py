@@ -7,57 +7,38 @@ import quandl as qdl
 import cvxopt as opt
 from cvxopt import blas, solvers, matrix
 import rollover_google_sheet 
-import matplotlib.pyplot as plt
 import Pull_Data
 import Set_Variables as sv 
 
 def main():
-	# Authorization key for quandl
-	auth_tok = sv.auth_tok
-	# The last day to import data (most recent is today)
-	end_date = sv.end_date
 	np.random.seed(919)
 	# Get currency lists from Pull_Data
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
-	# Input number of days to retrieve historical rates
-	num_days = sv.num_days_optimal_portfolio 
-	#Compute returns with shift percentage change delay (daily = 1)
-	shift = sv.shift
-	# Input Leverage
-	leverage = sv.leverage
-	#For simplicity, assume fixed interest rate (risk free rate)
-	interest_rate = sv.interest_rate
 	# Minimum desired return
 	rmin = sv.rminimum
-
 	#Compute returns
-	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, num_days, end_date, auth_tok)
-	returns_table = currency_table.pct_change(periods= shift).dropna()
+	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, sv.num_days_optimal_portfolio, sv.end_date , sv.auth_tok)
+	returns_table = currency_table.pct_change(periods= sv.shift).dropna()
 	returns_table.drop(returns_table.index[:1], inplace=True)
-
-	rollover_table = rollover_google_sheet.pull_data(num_days)
+	rollover_table = rollover_google_sheet.pull_data(sv.num_days_optimal_portfolio)
 	# Rollover from Forex.com is given in $10,000 increments, therefore daily return (as percentage) is rollover/(10,000 * 100) 
 	rollover_table = rollover_table / 100
-
 	# For the time-being, there is insufficient rollover data, we will calculate rollover as an average until this is no longer the case
 	mean_rollover = np.mean(rollover_table, axis=0)
-	mean_rollover = leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
+	mean_rollover = sv.leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
 	# Merge returns and rollover tables
 	merge_table = merge_tables(returns_table, rollover_table)
-	merge_table = 100 * leverage * merge_table.dropna()
-	merge_table['RF'] = interest_rate 
-
+	merge_table = 100 * sv.leverage * merge_table.dropna()
+	merge_table['RF'] = sv.interest_rate 
 	# Convert returns to a numpy array to be used by cvxopt
 	return_vec = (np.asarray(merge_table).T) 
 	# Calculate the mean values of return_vec
 	pbar = opt.matrix(np.mean(return_vec, axis = 1))
 	# Add mean returns from currency pairs as well as rollovers
 	pbar = pbar + mean_rollover
-	# Input number of random portfolios to calculate
-	n_portfolios = sv.n_portfolios
 	# Calculate expected returns and standard deviation tuples for randomly weighted portfolios
-	means, stds = np.column_stack([random_portfolio(return_vec) for _ in xrange(n_portfolios)])
+	means, stds = np.column_stack([random_portfolio(return_vec) for _ in xrange(sv.n_portfolios)])
 
 	#Compute minimum variance portfolio to match desired expected return, print optimal portfolio weights
 	solvers.options['show_progress'] = False

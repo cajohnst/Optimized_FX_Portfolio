@@ -1,10 +1,6 @@
-# import pandas.io.data as web
-# from pandas.io.data import DataReader
+
 import datetime
 from datetime import timedelta, date
-# import io
-# import requests
-# import pandas as pd
 import csv
 import requests
 import pandas as pd 

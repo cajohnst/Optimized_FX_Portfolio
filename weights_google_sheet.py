@@ -88,8 +88,8 @@ def populate_columns(wks, last_column, currency_list):
     wks.update_cells(cell_list)
 
 def pull_data(num_days, sheet_name):
-    end_date = sv.end_date 
-    start_date = end_date - timedelta(num_days)
+    sv.end_date  = sv.sv.end_date  
+    start_date = sv.end_date  - timedelta(num_days)
     sps = setup_credentials()
     wks = sps.worksheet(sheet_name)
     
@@ -97,7 +97,7 @@ def pull_data(num_days, sheet_name):
     csv_buffer = StringIO.StringIO(csv_file)
     weights_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    filtered_data = weights_data.ix[start_date:end_date]
+    filtered_data = weights_data.ix[start_date:sv.end_date ]
 
     return filtered_data
 

@@ -6,7 +6,7 @@ import Set_Variables as sv
 # Hardcoded currencies, to be changed
 
 def main():
-	today = sv.end_date
+	today = sv.end_date 
 	today = today.strftime("%Y%m%d")
 
 	'''fxstreet_scraper will be run twice per day, the first time will allow for the user to input predictions 
