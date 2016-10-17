@@ -61,7 +61,6 @@ def bootstrap_sheet(wks):
         wks.update_acell('A1', 2)
 
 def update_spreadsheet(wks, currency_list, weights):
-    today = date.today()
     bootstrap_sheet(wks)
     current_row = int(wks.acell('A1').value)
 
@@ -71,7 +70,7 @@ def update_spreadsheet(wks, currency_list, weights):
     if wks.acell('B1').value == '':
         populate_columns(wks, last_column, currency_list)
     # Populate date
-    wks.update_acell('A' + str(current_row), today)
+    wks.update_acell('A' + str(current_row), sv.end_date)
 
     cell_range = 'B' + str(current_row) + ':' + last_column + str(current_row)
     cell_list = wks.range(cell_range)
@@ -88,7 +87,6 @@ def populate_columns(wks, last_column, currency_list):
     wks.update_cells(cell_list)
 
 def pull_data(num_days, sheet_name):
-    sv.end_date  = sv.sv.end_date  
     start_date = sv.end_date  - timedelta(num_days)
     sps = setup_credentials()
     wks = sps.worksheet(sheet_name)
@@ -97,7 +95,11 @@ def pull_data(num_days, sheet_name):
     csv_buffer = StringIO.StringIO(csv_file)
     weights_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    filtered_data = weights_data.ix[start_date:sv.end_date ]
+    earliest_date = weights_data.index[0].date()
+    if start_date < earliest_date:
+        start_date = earliest_date
+
+    filtered_data = weights_data.ix[start_date:sv.end_date]
 
     return filtered_data
 

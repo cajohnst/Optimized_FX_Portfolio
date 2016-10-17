@@ -193,7 +193,7 @@ def main():
 	
 	#Chart which displays the change in the distribution of weights in the portfolio over the last 10 time intervals as defined in main()
 	fig2= plt.figure()
-	distribution_chart = historical_weights.iloc[-10 * sv.distribution_interval::sv.distribution_interval, :].plot(kind='bar',stacked=True, colormap= 'Paired')
+	historical_weights.iloc[-10 * sv.distribution_interval::sv.distribution_interval, :].plot(kind='bar',stacked=True, colormap= 'Paired')
 	plt.ylim([-1,1])
 	plt.xlabel('Date')
 	plt.ylabel('Distribution')
@@ -240,7 +240,7 @@ def main():
 	plt.ylabel('Cumulative Returns (%)')
 	plt.title('Portfolio Returns vs. Benchmark')
 	cumulative_returns_plot.legend(loc= 'upper left' , prop={'size':10})
-	plt.savefig(daily_report_pdf, format= 'pdf')
+	plt.savefig(daily_report_pdf, format='pdf')
 	plt.close(fig3)
 
 	# Create pandas dataframe with benchmark and portfolio rolling sharpe ratios
@@ -254,7 +254,7 @@ def main():
 	plt.ylabel('Rolling ({0}}-Day) Sharpe Ratio'.format(sv.rolling_period))
 	plt.title('Portfolio Sharpe Ratio vs. Benchmark')
 	sharpe_plot.legend(loc= 'upper left', prop={'size':10})
-	plt.savefig(daily_report_pdf, format= 'pdf')
+	plt.savefig(daily_report_pdf, format='pdf')
 	plt.close(fig4)
 
 	#Calculate value at risk estimates over the rolling period (default is 95% confidence)
@@ -278,7 +278,7 @@ def main():
 	plt.ylabel('Rolling ({0}) day Value at Risk Per ${1}'.format(sv.rolling_period, sv.portfolio_value))
 	plt.title('Daily Value at Risk Per ${0} for Portfolio and {1}'.format(sv.portfolio_value, benchmark_list[0]))
 	VaR_plot.legend(loc= 'lower left', prop={'size':10})
-	plt.savefig(daily_report_pdf, format= 'pdf')
+	plt.savefig(daily_report_pdf, format='pdf')
 	plt.close(fig5)
 
 	# plt.clf()
@@ -292,7 +292,7 @@ def main():
 	plt.ylabel('Probability')
 	plt.title('Portfolio Return Distribution ({0} Bins)'.format(sv.num_bins))
 	plt.grid(True)
-	plt.savefig(daily_report_pdf, format= 'pdf')
+	plt.savefig(daily_report_pdf, format='pdf')
 	plt.close(fig6)
 
 
