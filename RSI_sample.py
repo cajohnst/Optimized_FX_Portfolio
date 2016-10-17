@@ -1,4 +1,4 @@
-import Set_Variables as sv 
+import settings as sv 
 import pandas as pd 
 from pandas import DataFrame
 import quandl as qdl

@@ -1,5 +1,5 @@
 ''' Pull all data to be used in Optimize_FX_Portfolio, RSI_sample, MACD_sample, and futures_vs_spot (eventually pull fred economic reports) '''
-import Set_Variables as sv 
+import settings as sv 
 import pandas as pd 
 import quandl as qdl 
 import numpy as np 

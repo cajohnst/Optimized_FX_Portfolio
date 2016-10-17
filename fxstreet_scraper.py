@@ -2,7 +2,7 @@ import requests
 import datetime
 from datetime import date, timedelta
 import pandas as pd 
-import Set_Variables as sv 
+import settings as sv 
 # Hardcoded currencies, to be changed
 
 def main():

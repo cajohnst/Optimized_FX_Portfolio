@@ -7,7 +7,7 @@ import os
 import fxstreet_scraper
 import StringIO
 import csv
-import Set_Variables as sv 
+import settings as sv 
 
 on_heroku = False
 

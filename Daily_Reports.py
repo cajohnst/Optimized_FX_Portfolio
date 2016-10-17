@@ -4,7 +4,7 @@ import Optimize_FX_Portfolio
 import RSI_sample
 import rollover_google_sheet
 import weights_google_sheet
-import Set_Variables as sv
+import settings as sv
 import matplotlib.pyplot as plt 
 import sklearn as sklearn
 from sklearn import preprocessing
@@ -26,6 +26,7 @@ import matplotlib.font_manager as font_manager
 import quandl as qdl 
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import norm 
+import argparse
 
 
 ######################################################################################################################
@@ -110,6 +111,15 @@ The Optimize FX Portfolio Project:
 ######################################################################################################################
 
 def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--no-update', action='store_true', help='Use if you do not wish to update weights google sheet.')
+	args = parser.parse_args()
+
+	# Flag for updating weights on google sheets
+	update_weights = True
+	if args.no_update:
+		update_weights = False
+
 	np.random.seed(919)
 	currency_list = Pull_Data.get_currency_list()
 	currency_quandl_list = Pull_Data.get_currency_quandl_list()
@@ -160,8 +170,9 @@ def main():
 	condensed_weights = consolidate_weights(weights)
 	condensed_pred_weights = consolidate_weights(pred_weights)
 # Export weights to google sheet
-	weights_google_sheet.main(condensed_weights, 'Mean-Variance')
-	weights_google_sheet.main(condensed_pred_weights, 'Prediction')
+	if update_weights:
+		weights_google_sheet.main(condensed_weights, 'Mean-Variance')
+		weights_google_sheet.main(condensed_pred_weights, 'Prediction')
 	
 # ######################################################################################################################
 # # Charts
@@ -175,7 +186,6 @@ def main():
 	#Chart displaying the efficient frontier, 5000 random portfolios, and stars for minimum variance given a minimum return
 	#The red star represents a mean-variance portfolio given historical returns, and the green star represents a mean-variance
 	#Portfolio accounting for technical and fundamental daily analysis predictions.
-	plt.figure()
 	plt.plot(stds, means, 'o')
 	plt.plot(risks, returns, 'y-o')
 	plt.plot(predicted_risks, predicted_returns, '-o', color= 'orange')
@@ -192,6 +202,7 @@ def main():
 	
 	# #Chart which displays the change in the distribution of weights in the portfolio over the last 10 time intervals as defined in main()
 
+	historical_weights.index = historical_weights.index.date
 	distribution_chart = historical_weights.iloc[-10 * sv.distribution_interval::sv.distribution_interval, :].plot(kind='bar',stacked=True, colormap= 'Paired')
 	plt.ylim([-1,1])
 	plt.xlabel('Date')
@@ -216,30 +227,27 @@ def main():
 	portfolio_returns = historical_weights.multiply(actual_returns, axis= 0)
 	portfolio_returns = portfolio_returns.dropna()
 	portfolio_returns['Portfolio Returns'] = portfolio_returns.sum(axis = 1)
-	# re-name series for simpler calling
-	total_return = portfolio_returns['Portfolio Returns']
-	# Calculate cumulative portfolio returns
-	portfolio_cum_ret = (1 + portfolio_returns['Portfolio Returns']).cumprod() -1
 	#Calculate portfolio rolling sharpe ratio
 	portfolio_sharpe = calc_sharpe(portfolio_returns['Portfolio Returns'], sv.interest_rate, sv.rolling_period)
-
-	#Calculate cumulative benchmark returns
-	benchmark_cum_ret = (1 + benchmark).cumprod() -1 
+	# re-name series for simpler calling
+	total_return = portfolio_returns['Portfolio Returns']
 
 	#Create pandas dataframe with benchmark and portfolio cumulative returns
-	cumulative_returns_df = benchmark_cum_ret.join(portfolio_cum_ret, how= 'left', rsuffix = '')
+	cumulative_returns_df = (benchmark/100).join(total_return/100, how='left', rsuffix ='')
 	cumulative_returns_df.dropna(inplace= True)
+	cum_return_func = lambda x: ((1 + x).cumprod() - 1) * 100
+	cumulative_returns_df = cumulative_returns_df.apply(cum_return_func, axis=0)
 
 	#Plot cumulative returns over given period
 	cumulative_returns_plot = cumulative_returns_df.plot()
 	plt.xlabel('Date')
 	plt.ylabel('Cumulative Returns (%)')
 	plt.title('Portfolio Returns vs. Benchmark')
-	cumulative_returns_plot.legend(loc= 'upper left' , prop={'size':10})
+	cumulative_returns_plot.legend(loc= 'upper left', prop={'size':10})
 	plt.savefig(daily_report_pdf, format='pdf')
 
 	# Create pandas dataframe with benchmark and portfolio rolling sharpe ratios
-	sharpe_df = benchmark_sharpe.join(portfolio_sharpe, how= 'left', rsuffix= '')
+	sharpe_df = benchmark_sharpe.join(portfolio_sharpe, how='left', rsuffix='')
 	sharpe_df.dropna(inplace= True)
 
 	#Plot sharpe ratios
@@ -250,45 +258,39 @@ def main():
 	sharpe_plot.legend(loc= 'upper left', prop={'size':10})
 	plt.savefig(daily_report_pdf, format='pdf')
 
+	#Calculate value at risk estimates over the rolling period (default is 95% confidence)
+	var, mean, std= calc_VaR(total_return, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
+	var_benchmark, mean_benchmark, std_benchmark= calc_VaR(benchmark_for_VaR, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
 
-	# #Calculate value at risk estimates over the rolling period (default is 95% confidence)
-	# var, mean, std= calc_VaR(total_return, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
-	# var_benchmark, mean_benchmark, std_benchmark= calc_VaR(benchmark_for_VaR, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
+	#mu and standard deviation for computing fitted z-score
+	#num_bins for number of bins in histogram
+	mu = mean.iloc[-1]
+	sigma = std.iloc[-1] 
 
-	# #mu and standard deviation for computing fitted z-score
-	# #num_bins for number of bins in histogram
-	# mu = mean.iloc[-1]
-	# sigma = std.iloc[-1] 
+	#Create pandas dataframe with Value at Risk elements
+	VaR_df = pd.concat([var, var_benchmark], axis = 1)
+	VaR_df.dropna(inplace= True)
+	VaR_df.columns = ['Portfolio VaR', 'Benchmark VaR']
 
-	# #Create pandas dataframe with Value at Risk elements
-	# VaR_df = pd.concat([var, var_benchmark], axis = 1)
-	# VaR_df.dropna(inplace= True)
-	# VaR_df.columns = ['Portfolio VaR', 'Benchmark VaR']
+	#Create VaR chart
+	VaR_plot = VaR_df.plot()
+	plt.xlabel('Date')
+	plt.ylabel('Rolling ({0}) day Value at Risk Per ${1}'.format(sv.rolling_period, sv.portfolio_value))
+	plt.title('Daily Value at Risk Per ${0} for Portfolio and {1}'.format(sv.portfolio_value, benchmark_list[0]))
+	VaR_plot.legend(loc= 'lower left', prop={'size':10})
+	plt.savefig(daily_report_pdf, format='pdf')
 
-	# #Create VaR chart
-	# fig5= plt.figure()
-	# VaR_plot = VaR_df.plot()
-	# plt.xlabel('Date')
-	# plt.ylabel('Rolling ({0}) day Value at Risk Per ${1}'.format(sv.rolling_period, sv.portfolio_value))
-	# plt.title('Daily Value at Risk Per ${0} for Portfolio and {1}'.format(sv.portfolio_value, benchmark_list[0]))
-	# VaR_plot.legend(loc= 'lower left', prop={'size':10})
-	# plt.savefig(daily_report_pdf, format='pdf')
-	# plt.close(fig5)
+	plt.clf()
 
-	# plt.clf()
-
-	# #Create portolio returns histogram to assess normality
-	# fig6 = plt.figure()
-	# n, bins, patches = plt.hist(total_return, bins= sv.num_bins, normed=1, facecolor= 'green')
-	# y = mlab.normpdf(bins, mu, sigma)
-	# l = plt.plot(bins, y, 'r--', linewidth=1)
-	# plt.xlabel('Return Percentage')
-	# plt.ylabel('Probability')
-	# plt.title('Portfolio Return Distribution ({0} Bins)'.format(sv.num_bins))
-	# plt.grid(True)
-	# plt.savefig(daily_report_pdf, format='pdf')
-	# plt.close(fig6)
-
+	#Create portolio returns histogram to assess normality
+	n, bins, patches = plt.hist(total_return, bins= sv.num_bins, normed=1, facecolor= 'green')
+	y = mlab.normpdf(bins, mu, sigma)
+	l = plt.plot(bins, y, 'r--', linewidth=1)
+	plt.xlabel('Return Percentage')
+	plt.ylabel('Probability')
+	plt.title('Portfolio Return Distribution ({0} Bins)'.format(sv.num_bins))
+	plt.grid(True)
+	plt.savefig(daily_report_pdf, format='pdf')
 
 	# End pdf report
 	daily_report_pdf.close()
@@ -324,6 +326,7 @@ def predict_returns(regression_table, interest_rate):
 	short_list.append(interest_rate)
 	return short_list 
 
+
 def calc_sharpe(return_array, interest_rate, rolling_period):
 	#Calculate Sharpe Ratio to compare Benchmark Sharpe to Portfolio Sharpe
 
@@ -335,6 +338,7 @@ def calc_sharpe(return_array, interest_rate, rolling_period):
 	sharpe = sharpe.dropna()
 
 	return sharpe 
+
 
 def calc_VaR(return_array, initial_value, rolling_period, confidence_level = 0.95):
 
@@ -367,7 +371,8 @@ def consolidate_weights(weights_array):
 	weights_vector = [weights_array[2*p+1]-weights_array[2*p] for p in range(num_weights)]
 	weights_vector.append(rf)
 
-	return weights_vector 
+	return weights_vector
+
 
 if __name__ == "__main__":
 	main()

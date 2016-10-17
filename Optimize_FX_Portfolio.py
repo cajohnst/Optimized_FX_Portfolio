@@ -8,7 +8,7 @@ import cvxopt as opt
 from cvxopt import blas, solvers, matrix
 import rollover_google_sheet 
 import Pull_Data
-import Set_Variables as sv 
+import settings as sv 
 
 def main():
 	np.random.seed(919)

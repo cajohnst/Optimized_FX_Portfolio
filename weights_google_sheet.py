@@ -7,7 +7,7 @@ import StringIO
 import csv
 import os
 import Pull_Data 
-import Set_Variables as sv 
+import settings as sv 
 
 on_heroku = False
 
