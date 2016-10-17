@@ -170,12 +170,12 @@ def main():
 	RSI_sample.main()
 
 	# Define PDF to append charts
-	daily_report_pdf = PdfPages('daily_report_pdf')
+	daily_report_pdf = PdfPages('Daily_Report.pdf')
 
 	#Chart displaying the efficient frontier, 5000 random portfolios, and stars for minimum variance given a minimum return
 	#The red star represents a mean-variance portfolio given historical returns, and the green star represents a mean-variance
 	#Portfolio accounting for technical and fundamental daily analysis predictions.
-	fig1 = plt.figure()
+	plt.figure()
 	plt.plot(stds, means, 'o')
 	plt.plot(risks, returns, 'y-o')
 	plt.plot(predicted_risks, predicted_returns, '-o', color= 'orange')
@@ -184,24 +184,22 @@ def main():
 	plt.ylabel('Expected Return')
 	plt.xlabel('Expected Volatility')
 	plt.title('Portfolio Efficient Frontier')
-	plt.savefig('daily_report_pdf', format= 'pdf')
-	plt.close(fig1)
+	plt.savefig(daily_report_pdf, format= 'pdf')
 
 	# Import weights table for portfolio risk metrics 
 	historical_weights = weights_google_sheet.pull_data(sv.num_days_optimal_portfolio, 'Prediction')
 	legend_cols = int(len(historical_weights.columns)/ 3)
 	
-	#Chart which displays the change in the distribution of weights in the portfolio over the last 10 time intervals as defined in main()
-	fig2= plt.figure()
-	historical_weights.iloc[-10 * sv.distribution_interval::sv.distribution_interval, :].plot(kind='bar',stacked=True, colormap= 'Paired')
+	# #Chart which displays the change in the distribution of weights in the portfolio over the last 10 time intervals as defined in main()
+
+	distribution_chart = historical_weights.iloc[-10 * sv.distribution_interval::sv.distribution_interval, :].plot(kind='bar',stacked=True, colormap= 'Paired')
 	plt.ylim([-1,1])
 	plt.xlabel('Date')
 	plt.ylabel('Distribution')
 	plt.title('Distribution vs. Time')
 	plt.tight_layout()
 	plt.legend(loc= 'upper left', prop= {'size': 10}, ncol= legend_cols)
-	plt.savefig(daily_report_pdf, bbox_inches= 'tight', format = 'pdf')
-	plt.close(fig2)
+	plt.savefig(daily_report_pdf, format = 'pdf')
 	
 	# For comparison, import a benchmark asset to compare portfolio sharpe ratios over time as well as VaR analysis
 	benchmark_list = ['SPY']
@@ -213,7 +211,6 @@ def main():
 
 	# Calculate benchmark rolling sharpe ratios
 	benchmark_sharpe = calc_sharpe(benchmark, sv.interest_rate, sv.rolling_period)
-
 
 	# Calculate portfolio returns by multiplying portfolio
 	portfolio_returns = historical_weights.multiply(actual_returns, axis= 0)
@@ -234,66 +231,63 @@ def main():
 	cumulative_returns_df.dropna(inplace= True)
 
 	#Plot cumulative returns over given period
-	fig3= plt.figure()
 	cumulative_returns_plot = cumulative_returns_df.plot()
 	plt.xlabel('Date')
 	plt.ylabel('Cumulative Returns (%)')
 	plt.title('Portfolio Returns vs. Benchmark')
 	cumulative_returns_plot.legend(loc= 'upper left' , prop={'size':10})
 	plt.savefig(daily_report_pdf, format='pdf')
-	plt.close(fig3)
 
 	# Create pandas dataframe with benchmark and portfolio rolling sharpe ratios
 	sharpe_df = benchmark_sharpe.join(portfolio_sharpe, how= 'left', rsuffix= '')
 	sharpe_df.dropna(inplace= True)
 
 	#Plot sharpe ratios
-	fig4= plt.figure()
 	sharpe_plot = sharpe_df.plot()
 	plt.xlabel('Date')
-	plt.ylabel('Rolling ({0}}-Day) Sharpe Ratio'.format(sv.rolling_period))
+	plt.ylabel('Rolling ({0})-Day) Sharpe Ratio'.format(sv.rolling_period))
 	plt.title('Portfolio Sharpe Ratio vs. Benchmark')
 	sharpe_plot.legend(loc= 'upper left', prop={'size':10})
 	plt.savefig(daily_report_pdf, format='pdf')
-	plt.close(fig4)
 
-	#Calculate value at risk estimates over the rolling period (default is 95% confidence)
-	var, mean, std= calc_VaR(total_return, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
-	var_benchmark, mean_benchmark, std_benchmark= calc_VaR(benchmark_for_VaR, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
 
-	#mu and standard deviation for computing fitted z-score
-	#num_bins for number of bins in histogram
-	mu = mean.iloc[-1]
-	sigma = std.iloc[-1] 
+	# #Calculate value at risk estimates over the rolling period (default is 95% confidence)
+	# var, mean, std= calc_VaR(total_return, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
+	# var_benchmark, mean_benchmark, std_benchmark= calc_VaR(benchmark_for_VaR, sv.portfolio_value, sv.rolling_period, confidence_level= 0.95)
 
-	#Create pandas dataframe with Value at Risk elements
-	VaR_df = pd.concat([var, var_benchmark], axis = 1)
-	VaR_df.dropna(inplace= True)
-	VaR_df.columns = ['Portfolio VaR', 'Benchmark VaR']
+	# #mu and standard deviation for computing fitted z-score
+	# #num_bins for number of bins in histogram
+	# mu = mean.iloc[-1]
+	# sigma = std.iloc[-1] 
 
-	#Create VaR chart
-	fig5= plt.figure()
-	VaR_plot = VaR_df.plot()
-	plt.xlabel('Date')
-	plt.ylabel('Rolling ({0}) day Value at Risk Per ${1}'.format(sv.rolling_period, sv.portfolio_value))
-	plt.title('Daily Value at Risk Per ${0} for Portfolio and {1}'.format(sv.portfolio_value, benchmark_list[0]))
-	VaR_plot.legend(loc= 'lower left', prop={'size':10})
-	plt.savefig(daily_report_pdf, format='pdf')
-	plt.close(fig5)
+	# #Create pandas dataframe with Value at Risk elements
+	# VaR_df = pd.concat([var, var_benchmark], axis = 1)
+	# VaR_df.dropna(inplace= True)
+	# VaR_df.columns = ['Portfolio VaR', 'Benchmark VaR']
+
+	# #Create VaR chart
+	# fig5= plt.figure()
+	# VaR_plot = VaR_df.plot()
+	# plt.xlabel('Date')
+	# plt.ylabel('Rolling ({0}) day Value at Risk Per ${1}'.format(sv.rolling_period, sv.portfolio_value))
+	# plt.title('Daily Value at Risk Per ${0} for Portfolio and {1}'.format(sv.portfolio_value, benchmark_list[0]))
+	# VaR_plot.legend(loc= 'lower left', prop={'size':10})
+	# plt.savefig(daily_report_pdf, format='pdf')
+	# plt.close(fig5)
 
 	# plt.clf()
 
-	#Create portolio returns histogram to assess normality
-	fig6 = plt.figure()
-	n, bins, patches = plt.hist(total_return, bins= sv.num_bins, normed=1, facecolor= 'green')
-	y = mlab.normpdf(bins, mu, sigma)
-	l = plt.plot(bins, y, 'r--', linewidth=1)
-	plt.xlabel('Return Percentage')
-	plt.ylabel('Probability')
-	plt.title('Portfolio Return Distribution ({0} Bins)'.format(sv.num_bins))
-	plt.grid(True)
-	plt.savefig(daily_report_pdf, format='pdf')
-	plt.close(fig6)
+	# #Create portolio returns histogram to assess normality
+	# fig6 = plt.figure()
+	# n, bins, patches = plt.hist(total_return, bins= sv.num_bins, normed=1, facecolor= 'green')
+	# y = mlab.normpdf(bins, mu, sigma)
+	# l = plt.plot(bins, y, 'r--', linewidth=1)
+	# plt.xlabel('Return Percentage')
+	# plt.ylabel('Probability')
+	# plt.title('Portfolio Return Distribution ({0} Bins)'.format(sv.num_bins))
+	# plt.grid(True)
+	# plt.savefig(daily_report_pdf, format='pdf')
+	# plt.close(fig6)
 
 
 	# End pdf report
