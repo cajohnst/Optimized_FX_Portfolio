@@ -7,6 +7,7 @@ import os
 import fxstreet_scraper
 import StringIO
 import csv
+import settings as sv 
 
 on_heroku = False
 
@@ -85,16 +86,15 @@ def update_spreadsheet(wks):
     wks.update_acell('A1', current_row)
     
 
-def pull_data(num_days):
-    end_date = date.today()
-    start_date = end_date - timedelta(num_days)
+def pull_data(num_days): 
+    start_date = sv.end_date  - timedelta(num_days)
     wks = setup_credentials()
     
     csv_file = wks.export(format='csv')
     csv_buffer = StringIO.StringIO(csv_file)
     fxstreet_data = pd.read_csv(csv_buffer, header=1, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    filtered_data = fxstreet_data.ix[start_date:end_date]
+    filtered_data = fxstreet_data.ix[start_date:sv.end_date]
 
     return filtered_data
 

@@ -56,7 +56,6 @@ def setup_keyfile_dict():
 	return keyfile_dict
 
 def update_spreadsheet(wks, currency_list):
-	today = date.today()
 	# If new spreadsheet, update current row indicator
 	if wks.acell('A1').value == '':
 		wks.update_acell('A1', 2)
@@ -69,7 +68,7 @@ def update_spreadsheet(wks, currency_list):
 
 	if wks.acell('B1').value == '':
 		populate_columns(wks, rollover_table, last_column)
-	wks.update_acell('A' + current_row, today)
+	wks.update_acell('A' + current_row, sv.end_date)
 
 	cell_range = 'B' + current_row + ':' + last_column + current_row
 	cell_list = wks.range(cell_range)
