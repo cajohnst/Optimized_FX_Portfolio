@@ -5,10 +5,12 @@ import csv
 import requests
 import pandas as pd 
 import StringIO
+import weights_google_sheet
+import Pull_Data
 
 def main():
 
-	currency_list = get_currency_list()
+	currency_list = Pull_Data.get_currency_list()
 
 	yahoo_list = ['MXN=X', 'USDCAD=X', 'NZDUSD=X', 'HKD=X', 'USDJPY=X', 'USDSGD=X', 'GBPUSD=X', 'USDZAR=X', 'AUDUSD=X', 'EURUSD=X']
 	live_quotes = None 
@@ -38,11 +40,11 @@ def main():
 	live_quotes.columns = currency_list 
 	live_quotes.index.names = ['DateTime']
 
-	return live_quotes
+	# Export run-time spot rates to google sheet for calculating portfolio returns
+	to_google_sheet = live_quotes.values.flatten().tolist()
+	weights_google_sheet.main(to_google_sheet, 'Spot-Rates')
 
-def get_currency_list():
-	currency_list = ['USD/MXN', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
-	return currency_list 
+	return live_quotes
 
 
 if __name__ == "__main__":

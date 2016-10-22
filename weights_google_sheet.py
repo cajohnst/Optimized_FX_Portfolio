@@ -17,7 +17,7 @@ if 'DYNO' in os.environ:
 def main(weights=None, sheet_name=None):
     currency_list = Pull_Data.get_currency_list()
     # Append RF to list
-    currency_list.append('RF')
+    # currency_list.append('RF')
     sps = setup_credentials()
 
 #     if on_heroku:

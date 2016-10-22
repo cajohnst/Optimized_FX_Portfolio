@@ -144,40 +144,47 @@ def get_economic_data_dict():
 	economic_data_dict = {
 	'United States': 
 		['Consumer Price Index (YoY)', 'Consumer Price Index Ex Food & Energy (YoY)', 'Nonfarm Payrolls', 'Reuters/Michigan Consumer Sentiment Index', 'Baker Hughes US Oil Rig Count', 'Durable Goods Orders', 'Durable Goods Orders ex Transportation', 'Retail Sales (MoM)', 'Initial Jobless Claims', 'ADP Employment Change', 'Gross Domestic Product Annualized', 'Unemployment Rate', 'M2', 'Housing Starts (MoM)', 'Building Permits (MoM)', '10-Year Note Auction', 
-		'EIA Crude Oil Stocks change', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index', 'ISM Prices Paid', 'ISM Manufacturing PMI', 'Markit Manufacturing PMI', 'Construction Spending (MoM)', 'Trade Balance', 'ISM Non-Manufacturing PMI', 'Factory Orders (MoM)']
+		'EIA Crude Oil Stocks change', 'S&P/Case-Shiller Home Price Indices (YoY)', 'Markit Services PMI', 'Markit PMI Composite', 'Consumer Confidence', 'Dallas Fed Manufacturing Business Index', 'ISM Prices Paid', 'ISM Manufacturing PMI', 'Markit Manufacturing PMI', 'Construction Spending (MoM)', 'Trade Balance', 'ISM Non-Manufacturing PMI', 'Factory Orders (MoM)', 'Average Hourly Earnings (MoM)', 'Average Hourly Earnings (YoY)', 'Labor Force Participation Rate',
+		'Consumer Credit Change', 'Labor Market Conditions Index', 'Export Price Index (MoM)', 'Import Price Index (MoM)', 'Export Price Index (YoY)', 'Import Price Index (YoY)', 'Retail Sales ex Autos (MoM)', 'Industrial Production (MoM)', 'Consumer Price Index (MoM)', 'Consumer Price Index Ex Food & Energy (MoM)', 'NAHB Housing Market Index', 'Consumer Price Index n.s.a (MoM)', 'Consumer Price Index Core s.a', 'Philadelphia Fed Manufacturing Survey',
+		'CB Leading Indicator (MoM)']
 	,
 	'Japan':
-		['National Consumer Price Index (YoY)', 'Foreign investment in Japan stocks', 'Foreign bond investment', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)' ]
+		['National Consumer Price Index (YoY)', 'Foreign investment in Japan stocks', 'Foreign bond investment', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)', 'Tankan Non - Manufacturing Index', 'Tankan Large All Industry Capex', 'Tankan Large Manufacturing Outlook', 'Tankan Large Manufacturing Index', 'Tankan Non - Manufacturing Outlook', 'Nikkei Manufacturing PMI', 'Vehicle Sales (YoY)', 'Tertiary Industry Index (MoM)',
+		'All Industry Activity Index (MoM)']
 	,
 	'European Monetary Union':
-		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI', 'Producer Price Index (MoM)', 'Producer Price Index (YoY)', 'Markit Services PMI']
+		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI', 'Producer Price Index (MoM)', 'Producer Price Index (YoY)', 'Markit Services PMI', 'ZEW Survey - Economic Sentiment', 'Industrial Production w.d.a. (YoY)', 'Industrial Production s.a. (MoM)', 'Trade Balance n.s.a.', 'Trade Balance s.a.', 'Consumer Price Index (MoM)', 'Consumer Price Index - Core (MoM)', 'ECB Interest Rate Decision', 'ECB deposit rate decision']
 	,
 	'Germany':
-		['Markit Manufacturing PMI', '10-y Bond Auction']
+		['Markit Manufacturing PMI', '10-y Bond Auction', 'Exports (MoM)', 'Trade Balance s.a.', 'Imports (MoM)', 'Current Account n.s.a.', 'ZEW Survey - Current Situation', 'ZEW Survey - Economic Sentiment', 'Wholesale Price Index (YoY)', 'Wholesale Price Index (MoM)', 'Harmonised Index of Consumer Prices (MoM)', 'Consumer Price Index (YoY)', 'Harmonised Index of Consumer Prices (YoY)', 'Consumer Price Index (MoM)', 'Producer Price Index (YoY)', 'Producer Price Index (MoM)']
 	,
 	'Australia':
-		['TD Securities Inflation (YoY)', 'TD Securities Inflation (MoM)', 'RBA Interest Rate Decision', 'Retail Sales s.a (MoM)']
+		['TD Securities Inflation (YoY)', 'TD Securities Inflation (MoM)', 'RBA Interest Rate Decision', 'Retail Sales s.a. (MoM)', 'AiG Performance of Mfg Index', 'Imports', 'Exports', 'Trade Balance', 'AiG Performance of Construction Index', 'Home Loans', 'Investment Lending for Homes', 'Westpac Consumer Confidence', 'Consumer Inflation Expectation', 'Participation Rate', 'Unemployment Rate s.a.', 'Employment Change s.a.']
 	,
 	'Canada':
-		['RBC Manufacturing PMI']
+		['RBC Manufacturing PMI', 'Unemployment Rate', 'Participation rate', 'Net Change in Employment', 'Ivey Purchasing Managers Index', 'Ivey Purchasing Managers Index s.a', 'Housing Starts s.a (YoY)', 'BoC Interest Rate Decision']
 	,
 	'New Zealand':
-		[]
+		['Electronic Card Retail Sales  (MoM)', 'Electronic Card Retail Sales (YoY)', 'Business NZ PMI', 'Consumer Price Index (QoQ)', 'Consumer Price Index (YoY)']
 	,
 	'China':
-		[]
+		['FDI - Foreign Direct Investment (YTD) (YoY)', 'Trade Balance CNY', 'Imports (YoY)', 'Exports (YoY)', 'Trade Balance USD', 'Producer Price Index (YoY)', 'Consumer Price Index (MoM)', 'Consumer Price Index (YoY)', 'Retail Sales (YoY)', 'Industrial Production (YoY)', 'Gross Domestic Product (YoY)', 'Gross Domestic Product (QoQ)']
 	,
 	'United Kingdom':
-		['Markit Manufacturing PMI', 'PMI Construction']
+		['Markit Manufacturing PMI', 'PMI Construction', 'Manufacturing Production (YoY)', 'Manufacturing Production (MoM)', 'Industrial Production (MoM)', 'Industrial Production (YoY)', 'RICS Housing Price Balance', 'Producer Price Index - Output (MoM) n.s.a', 'Producer Price Index - Output (YoY) n.s.a', 'PPI Core Output (MoM) n.s.a', 'Producer Price Index - Input (YoY) n.s.a', 'Producer Price Index - Input (MoM) n.s.a', 'PPI Core Output (YoY) n.s.a ', 
+		'Consumer Price Index (YoY)', 'Consumer Price Index (MoM)', 'Core Consumer Price Index (YoY)', 'Consumer Price Index (MoM)', 'Core Consumer Price Index (YoY)', 'Retail Sales (MoM)', 'Retail Sales (YoY)', 'Retail Sales ex-Fuel (MoM)', 'Retail Sales ex-Fuel (YoY)']
 	, 
 	'Italy':
-		[]
+		['Markit Manufacturing PMI']
 	, 
 	'Switzerland':
-		['Real Retail Sales (YoY)']
+		['Real Retail Sales (YoY)', 'Consumer Price Index (MoM)', 'Consumer Price Index (YoY)', 'Unemployment Rate s.a (MoM)', 'ZEW Survey - Expectations']
 	,
 	'France':
-		[]
+		['Markit Manufacturing PMI']
+	,
+	'Spain':
+		['Markit Manufacturing PMI']
 	}
 
 	return economic_data_dict 

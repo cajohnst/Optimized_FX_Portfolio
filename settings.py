@@ -1,10 +1,13 @@
 #Set variables
 import datetime
 from datetime import date, timedelta
+
+# Execution Cost List as decimal (In the order of currency list)
+execution_costs = [.08, 0.00027, 0.0003, 0.0012, 0.2, 0.00053, 0.00029, 0.02, 0.0002, 0.00017]
 # authorization key for quandl data 
 auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 # Input last day to get returns data for (default is today)
-end_date = datetime.date.today() - timedelta(3)
+end_date = datetime.date.today() 
 # Input original portfolio value, used for VaR calculations
 portfolio_value = 1000
 # Input number of days to calculate back returns
@@ -13,12 +16,18 @@ num_days_optimal_portfolio = 200
 shift = 1
 # Input Leverage
 leverage = 10
+# If daily return has been met, reduce leverage to this factor
+reduced_leverage = 2.5
 # Input Rolling Period for moving averages
-rolling_period = 50
+rolling_period = 2
 # Input minimum desired return for portfolio optimization
 rminimum = 100/float(252)
+# Input average execution cost
+avg_spread = 0.0003
 # Input risk free interest rate
 interest_rate = 2/ float(365)
+# Input weight threshold to make new trade 
+weight_threshold = 0.05
 # Input interval for displaying changes in the weight distribution over time for distribution chart (daily=1, weekly=5)
 distribution_interval = 5
 
@@ -56,4 +65,4 @@ d = 3
 Overbought_S = 80
 Oversold_S = 20
 # Number of bins for VaR histogram in Daily_Reports
-num_bins = 25
+num_bins = 10
