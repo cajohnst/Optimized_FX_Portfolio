@@ -32,7 +32,7 @@ def main():
 	# Create column 'Deviation' as the actual value on the data release subtracting the market expectation
 	econ_calendar_full['Deviation'] = econ_calendar_full['Actual'] - econ_calendar_full['Consensus']
 
-# #Take today's Economic Events from FXstreet_scraper and format
+	#Take today's Economic Events from FXstreet_scraper and format
 	econ_calendar_today = fxstreet_scraper.main()
 	econ_calendar_today = StringIO.StringIO(econ_calendar_today)
 	econ_calendar_today = pd.read_csv(econ_calendar_today, header=0, index_col= False)
@@ -150,7 +150,7 @@ def get_economic_data_dict():
 	,
 	'Japan':
 		['National Consumer Price Index (YoY)', 'Foreign investment in Japan stocks', 'Foreign bond investment', 'Unemployment Rate', 'Industrial Production (MoM)', 'Industrial Production (YoY)', 'Tankan Non - Manufacturing Index', 'Tankan Large All Industry Capex', 'Tankan Large Manufacturing Outlook', 'Tankan Large Manufacturing Index', 'Tankan Non - Manufacturing Outlook', 'Nikkei Manufacturing PMI', 'Vehicle Sales (YoY)', 'Tertiary Industry Index (MoM)',
-		'All Industry Activity Index (MoM)']
+		'All Industry Activity Index (MoM)', 'Exports (YoY)', 'Imports (YoY)', 'Merchandise Trade Balance Total', 'Adjusted Merchandise Trade Balance']
 	,
 	'European Monetary Union':
 		['Unemployment Rate', 'Consumer Price Index (YoY)', 'Consumer Price Index - Core (YoY)', 'Markit Manufacturing PMI', 'Producer Price Index (MoM)', 'Producer Price Index (YoY)', 'Markit Services PMI', 'ZEW Survey - Economic Sentiment', 'Industrial Production w.d.a. (YoY)', 'Industrial Production s.a. (MoM)', 'Trade Balance n.s.a.', 'Trade Balance s.a.', 'Consumer Price Index (MoM)', 'Consumer Price Index - Core (MoM)', 'ECB Interest Rate Decision', 'ECB deposit rate decision']

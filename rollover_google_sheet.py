@@ -2,9 +2,12 @@ import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime
-from datetime import date
+from datetime import date, timedelta 
+import StringIO
+import csv
 import os
 from rollover_scraper import generate_rollover
+import settings as sv 
 
 on_heroku = False
 
@@ -88,24 +91,24 @@ def populate_columns(wks, rollover_table, last_column):
 		cell_list[(index * 2) + 1].value = long_name
 	wks.update_cells(cell_list)
 
-def pull_data(num_days):
-	wks = setup_credentials()
-	current_row = wks.acell('A1').value
-	latest_entry = int(wks.acell('A1').value) - 1
-	if num_days > latest_entry:
-		start_row = 2
-	else:
-		start_row = latest_entry - num_days
+def pull_data(num_days, currency_list):
+    start_date = sv.end_date  - timedelta(num_days)
+    wks = setup_credentials()
+    
+    csv_file = wks.export(format='csv')
+    csv_buffer = StringIO.StringIO(csv_file)
+    rollover_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-	columns = [x for x in wks.row_values(1) if x]
-	rollover_table = pd.DataFrame(columns=columns)
-	for row_index in range(start_row, latest_entry + 1):
-		row_data = pd.to_datetime(wks.row_values(row_index)[0])
-		row_date = [float(x) for x in wks.row_values(row_index)[1:] if x]
-		rollover_values = [row_data] + row_date
-		rollover_table.loc[row_index - 2] = rollover_values
-	rollover_table = rollover_table.set_index(current_row)
-	return rollover_table
+    earliest_date = rollover_data.index[0].date()
+    print type(earliest_date)
+    if start_date < earliest_date:
+        start_date = earliest_date
+
+    filter_columns = [[x+' - S', x+' - L'] for x in currency_list]
+    filter_columns = [x for y in filter_columns for x in y]
+    filtered_data = weights_data.ix[start_date:sv.end_date][filter_columns]
+
+    return filtered_data
 
 
 def increment_letter(letter, amount):

@@ -157,7 +157,7 @@ def main():
 	pred_pbar[:] = [prediction - intraday - exec_costs for prediction, intraday, exec_costs in zip(pred_pbar, intraday_with_shorts, execution_with_shorts)]
 
 # Import rollover table to add to regression return predictions
-	rollover_table = rollover_google_sheet.pull_data(sv.num_days_optimal_portfolio)
+	rollover_table = rollover_google_sheet.pull_data(sv.num_days_optimal_portfolio, currency_list)
 	rollover_table = rollover_table / 100
 	merge_table = Optimize_FX_Portfolio.merge_tables(returns_table, rollover_table)
 	merge_table = 100 * sv.leverage * merge_table.dropna()
@@ -178,6 +178,42 @@ def main():
 	# Import weights tables for portfolio risk metrics 
 	historical_weights = weights_google_sheet.pull_data(sv.num_days_optimal_portfolio, 'Prediction')
 	historical_weights.index = historical_weights.index.date
+
+	for row_index, current_date in enumerate(historical_weights.index):
+		if row_index > 1:
+			date_delta = (current_date - historical_weights.index[row_index-1]).days
+			if date_delta > 0:
+				for column_index, value in historical_weights.iloc[row_index].iteritems():
+					if value > 0:
+						actual_returns[column_index][row_index] += rollover_table.loc[current_date+' - L'][column_index] * date_delta
+					elif value < 0:
+						actual_returns[column_index][row_index] += rollover_table.loc[current_date+' - S'][column_index] * date_delta
+					else:
+						continue
+
+	portfolio_returns['Execution_Cost'] = 0
+	n_weights = len(historical_weights)
+	#execution costs is a list in settings.py 
+	#spot_rates is a series flattened to a list representing the current rate
+	execution_returns = [float(exec_costs)/ rates for exec_costs, rates in zip(sv.execution_costs, spot_rates.values.flatten().tolist())]
+	# make temporary copy of historical weights
+	# Do not want to change while iterating
+	tmp_weights = historical_weights.deep_copy()
+	# row_index contains the index in integer format
+	# row contains the index in datetime format
+	for row_index, row in enumerate(historical_weights.index):
+		# Skip first row
+		if row_index > 1:
+			# column_index contains currency name, ex: USD/MXN
+			for column_index, boolean in  (abs(tmp_weights.iloc[row_index] - tmp_weights.iloc[row_index-1]) >= sv.weight_threshold).iteritems():
+				if boolean:
+					portfolio_returns['Execution_Cost'][row_index] += (execution_returns[tmp_weights.columns.get_loc(column_index)] * 100 * sv.leverage)
+					if row_index == n_weights - 1:
+						#Print a better message than this
+						print '{0}, {1}'.format(column_index, tmp_weights[column_index][row_index])
+				else:
+					tmp_weights.iloc[row_index] = tmp_weights.iloc[row_index-1]
+	historical_weights = tmp_weights
 
 	# Calculate portfolio returns by multiplying portfolio
 	portfolio_returns = historical_weights.multiply(actual_returns, axis= 0)
