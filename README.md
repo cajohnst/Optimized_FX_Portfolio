@@ -1,5 +1,5 @@
 # Optimized_FX_Portfolio
-The Optimize FX Portfolio Project(1.0):
+The Optimize FX Portfolio Project -Version 1.0 
 
 	Optimize FX Portfolio implements optimization and machine learning techniques in order to efficiently manage a
 	portfolio of currencies.  Portfolio Optimiztion, as described by Markowitz, is very accurate at minimizing portfolio variance,
