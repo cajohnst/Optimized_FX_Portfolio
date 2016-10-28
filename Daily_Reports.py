@@ -179,26 +179,32 @@ def main():
 	historical_weights = weights_google_sheet.pull_data(sv.num_days_optimal_portfolio, 'Prediction')
 	historical_weights.index = historical_weights.index.date
 
+	test_returns = actual_returns.copy(deep= True)
+
 	for row_index, current_date in enumerate(historical_weights.index):
 		if row_index > 1:
 			date_delta = (current_date - historical_weights.index[row_index-1]).days
 			if date_delta > 0:
 				for column_index, value in historical_weights.iloc[row_index].iteritems():
-					if value > 0:
-						actual_returns[column_index][row_index] += rollover_table.loc[current_date+' - L'][column_index] * date_delta
-					elif value < 0:
-						actual_returns[column_index][row_index] += rollover_table.loc[current_date+' - S'][column_index] * date_delta
-					else:
-						continue
+					if column_index != 'RF':
+						if value > 0:
+							actual_returns.iloc[row_index, actual_returns.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - L'] * date_delta * sv.leverage
+						elif value < 0:
+							actual_returns.iloc[row_index, actual_returns.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - S'] * date_delta * sv.leverage 
+						else:
+							continue
 
-	portfolio_returns['Execution_Cost'] = 0
+	print test_returns
+	print actual_returns
+	
+	actual_returns['Execution_Cost'] = 0
 	n_weights = len(historical_weights)
 	#execution costs is a list in settings.py 
 	#spot_rates is a series flattened to a list representing the current rate
-	execution_returns = [float(exec_costs)/ rates for exec_costs, rates in zip(sv.execution_costs, spot_rates.values.flatten().tolist())]
+	execution_returns = [float(exec_costs)/ rates * -100 * sv.leverage for exec_costs, rates in zip(sv.execution_costs, live_rates.values.flatten().tolist())]
 	# make temporary copy of historical weights
 	# Do not want to change while iterating
-	tmp_weights = historical_weights.deep_copy()
+	tmp_weights = historical_weights.copy(deep= True)
 	# row_index contains the index in integer format
 	# row contains the index in datetime format
 	for row_index, row in enumerate(historical_weights.index):
@@ -206,13 +212,14 @@ def main():
 		if row_index > 1:
 			# column_index contains currency name, ex: USD/MXN
 			for column_index, boolean in  (abs(tmp_weights.iloc[row_index] - tmp_weights.iloc[row_index-1]) >= sv.weight_threshold).iteritems():
-				if boolean:
-					portfolio_returns['Execution_Cost'][row_index] += (execution_returns[tmp_weights.columns.get_loc(column_index)] * 100 * sv.leverage)
+				if boolean: 
+					actual_returns.iloc[row_index, historical_weights.columns.get_loc(column_index)] += execution_returns[tmp_weights.columns.get_loc(column_index)]
 					if row_index == n_weights - 1:
 						#Print a better message than this
-						print '{0}, {1}'.format(column_index, tmp_weights[column_index][row_index])
+						print 'Currency: {0}, New Weight Allocation: {1}'.format(column_index, tmp_weights[column_index][row_index])
 				else:
 					tmp_weights.iloc[row_index] = tmp_weights.iloc[row_index-1]
+
 	historical_weights = tmp_weights
 
 	# Calculate portfolio returns by multiplying portfolio
@@ -238,47 +245,22 @@ def main():
 	sharpe_df = benchmark_sharpe.join(portfolio_sharpe, how='left', rsuffix='')
 	sharpe_df.dropna(inplace= True)
 
-	# Need to figure out the structure of the for loop to do the following:
-	# For each row, count number of values where the change in weights from previous is greater than threshold
-	# Calculate execution cost as count * average execution cost for each row, add this column to portfolio returns to subtract execution costs from returns
-	# If index is current (last) row, print the currency name and the new weight
-	# For each row, if the weight has not changed by threshold, replace weight with previous value (weight is not changed/ execution cost is not calculated)
-	# portfolio_returns['Execution_Cost'] = 0
-	# n_weights = len(historical_weights)
-
-	# for index, weight in enumerate(historical_weights): 
-	# 	if abs(historical_weights - historical_weights.shift(periods = 1)) > sv.weight_threshold:
-	# 		portfolio_returns['Execution_Cost'] += (sv.average_spread * 100)
-	# 		if index == n_weights -1:
-	# 			print '{0}, {1}'.format(index, weight)
-	# 	else:
-	# 		weight = weight.shift(periods = 1)
-
-	# re-name series for simpler calling
-	total_return = portfolio_returns['Portfolio Returns'] # - portfolio_returns['Execution Costs']
-	print 'total return'
-	print total_return
+	total_return = portfolio_returns['Portfolio Returns']
 	if datetime.date.today() in total_return.index.values:
 		minimum_return = sv.rminimum - total_return.iloc[-1]
 	else:
 		minimum_return = sv.rminimum
-	print 'minimum return:'
-	print minimum_return 
-	if minimum_return < 0:
-		pred_pbar = [prediction * sv.reduced_leverage / sv.leverage for prediction in pred_pbar]
-		mean_rollover = [rollover * sv.reduced_leverage / sv.leverage for rollover in mean_rollover]
+
+	# if minimum_return < 0:
+	# 	pred_pbar = [prediction * sv.reduced_leverage / sv.leverage for prediction in pred_pbar]
+	# 	mean_rollover = [rollover * sv.reduced_leverage / sv.leverage for rollover in mean_rollover]
 
 	mean_rollover = sv.leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
 	pred_pbar.append(sv.interest_rate)
 	pred_pbar = opt.matrix(np.asarray(pred_pbar))
-	print 'pred_pbar and mean rollover'
-	print pred_pbar
-	print mean_rollover 
 	# Final prediction to be used in Optimize_FX_Portfolio is the summation of the regression prediction and the average rollover 
 	# computed over the rollover period.
 	pbar = pred_pbar + mean_rollover
-	print 'pbar'
-	print pbar 
 	#Create pandas dataframe with benchmark and portfolio cumulative returns
 	cumulative_returns_df = (benchmark/100).join(total_return/100, how='left', rsuffix ='')
 	cumulative_returns_df.dropna(inplace= True)

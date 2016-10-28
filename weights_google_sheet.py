@@ -93,7 +93,7 @@ def pull_data(num_days, sheet_name):
     
     csv_file = wks.export(format='csv')
     csv_buffer = StringIO.StringIO(csv_file)
-    weights_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
+    weights_data = pd.read_csv(csv_buffer, header= 0, index_col=0, parse_dates=True, infer_datetime_format=True)
 
     earliest_date = weights_data.index[0].date()
     if start_date < earliest_date:

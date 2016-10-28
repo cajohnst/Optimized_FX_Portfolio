@@ -3,7 +3,7 @@ import datetime
 from datetime import date, timedelta
 
 # Execution Cost List as decimal (In the order of currency list)
-execution_costs = [.08, 0.00027, 0.0003, 0.0012, 0.2, 0.00053, 0.00029, 0.02, 0.0002, 0.00017]
+execution_costs = [.008, 0.00027, 0.0003, 0.0012, 0.2, 0.00053, 0.00029, 0.002, 0.0002, 0.00017, 0.0]
 # authorization key for quandl data 
 auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 # Input last day to get returns data for (default is today)
@@ -22,12 +22,10 @@ reduced_leverage = 2.5
 rolling_period = 2
 # Input minimum desired return for portfolio optimization
 rminimum = 100/float(252)
-# Input average execution cost
-avg_spread = 0.0003
 # Input risk free interest rate
 interest_rate = 2/ float(365)
 # Input weight threshold to make new trade 
-weight_threshold = 0.05
+weight_threshold = 0.0
 # Input interval for displaying changes in the weight distribution over time for distribution chart (daily=1, weekly=5)
 distribution_interval = 5
 

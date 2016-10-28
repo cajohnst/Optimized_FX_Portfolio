@@ -43,9 +43,9 @@ def setup_credentials():
 	if on_heroku:
 		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 	else:
-		# wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
+		wks = gc.open_by_key("1IqTMl-yCH-X8GtkeuCVpV1UobDRc9V7ycxR19ySh5qI").sheet1
 
-		wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
+		# wks = gc.open_by_key("1MW_NhhkPARpwtZfiLrn8v1EtzjQHLF5ifqkkWShFBO0").sheet1
 	return wks
 
 def setup_keyfile_dict():
@@ -92,23 +92,22 @@ def populate_columns(wks, rollover_table, last_column):
 	wks.update_cells(cell_list)
 
 def pull_data(num_days, currency_list):
-    start_date = sv.end_date  - timedelta(num_days)
-    wks = setup_credentials()
-    
-    csv_file = wks.export(format='csv')
-    csv_buffer = StringIO.StringIO(csv_file)
-    rollover_data = pd.read_csv(csv_buffer, index_col=0, parse_dates=True, infer_datetime_format=True)
+	start_date = sv.end_date  - timedelta(num_days)
+	wks = setup_credentials()
+	
+	csv_file = wks.export(format='csv')
+	csv_buffer = StringIO.StringIO(csv_file)
+	rollover_data = pd.read_csv(csv_buffer, header= 0, index_col=0, parse_dates=True, infer_datetime_format=True)
 
-    earliest_date = rollover_data.index[0].date()
-    print type(earliest_date)
-    if start_date < earliest_date:
-        start_date = earliest_date
+	earliest_date = rollover_data.index[0].date()
+	if start_date < earliest_date:
+		start_date = earliest_date
 
-    filter_columns = [[x+' - S', x+' - L'] for x in currency_list]
-    filter_columns = [x for y in filter_columns for x in y]
-    filtered_data = weights_data.ix[start_date:sv.end_date][filter_columns]
+	filter_columns = [[x+' - S', x+' - L'] for x in currency_list]
+	filter_columns = [x for y in filter_columns for x in y]
+	filtered_data = rollover_data.ix[start_date:sv.end_date][filter_columns]
 
-    return filtered_data
+	return filtered_data
 
 
 def increment_letter(letter, amount):
