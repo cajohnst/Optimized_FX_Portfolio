@@ -13,15 +13,16 @@ import settings as sv
 def main():
 	np.random.seed(919)
 	# Get currency lists from Pull_Data
-	currency_list = Pull_Data.get_currency_list()
-	currency_quandl_list = Pull_Data.get_currency_quandl_list()
+	currency_list = sv.get_currency_list()
+	currency_quandl_list = sv.get_currency_quandl_list()
 	# Minimum desired return
 	rmin = sv.rminimum
 	#Compute returns
 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, sv.num_days_optimal_portfolio, sv.end_date , sv.auth_tok)
 	returns_table = currency_table.pct_change(periods= sv.shift).dropna()
 	returns_table.drop(returns_table.index[:1], inplace=True)
-	rollover_table = rollover_google_sheet.pull_data(sv.num_days_optimal_portfolio)
+	returns_table = returns_table * 100 * sv.leverage
+	rollover_table = rollover_google_sheet.pull_data(sv.num_days_optimal_portfolio, currency_list)
 	# Rollover from Forex.com is given in $10,000 increments, therefore daily return (as percentage) is rollover/(10,000 * 100) 
 	rollover_table = rollover_table / 100
 	# For the time-being, there is insufficient rollover data, we will calculate rollover as an average until this is no longer the case
@@ -29,7 +30,7 @@ def main():
 	mean_rollover = sv.leverage * opt.matrix(np.append(mean_rollover, np.array(0)))
 	# Merge returns and rollover tables
 	merge_table = merge_tables(returns_table, rollover_table)
-	merge_table = 100 * sv.leverage * merge_table.dropna()
+	merge_table.dropna(inplace= True)
 	merge_table['RF'] = sv.interest_rate 
 	# Convert returns to a numpy array to be used by cvxopt
 	return_vec = (np.asarray(merge_table).T) 

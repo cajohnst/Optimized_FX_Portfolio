@@ -19,8 +19,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 def main():
 	#List of currencies to pull data for
-	currency_list = Pull_Data.get_currency_list()
-	currency_quandl_list = Pull_Data.get_currency_quandl_list()
+	currency_list = sv.get_currency_list()
+	currency_quandl_list = sv.get_currency_quandl_list()
 	#Create new lists to pull daily lows and highs for the stochastic oscillator
 	list_high = [high.replace('1', '2') for high in currency_quandl_list]
 	list_low = [low.replace('1', '3') for low in currency_quandl_list]

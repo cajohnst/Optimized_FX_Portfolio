@@ -31,7 +31,6 @@ import argparse
 
 
 ######################################################################################################################
-
 '''
 The Optimize FX Portfolio Project:
 	
@@ -82,14 +81,22 @@ The Optimize FX Portfolio Project:
 		be.  Of course, this in itself is a risk-return tradeoff.  Ideally, one would run updated regression predictions throughout the day after each data release becomes available, 
 		or simulate many different data release scenarios.  Making these predictions is currently not an automated process.
 	
-	5. Optimize Portfolio
+	5. Calculate returns
+		Return calculations not only include the change between currencies over an interval of time, we have also included additions and negations for rollover and execution costs. 
+		In calculating actual portfolio returns, we take the sum of intraday returns to calculate returns on the day.  Using these daily returns, we calculate the return over a period
+		longer than one day as the cumulative (compounded) return over the specified period.  This is an important assumption, that intraday returns are not compounded.  We have also 
+		incorporated our adjusted intraday portfolio return into the minimum return constraint when optimizing the portfolio.  The minimum return is calculated as the minimum return value
+		assigned in settings minus the accumulated intraday return.  Our predicted return values also take into account amounts of rollover and execution costs per trade.  Thus, we have 
+		more accurately optimized our portfolio by incorporating returns, rollover, and execution costs rather than just returns.
+
+	6. Optimize Portfolio
 		We then optimize two "different" portfolios utilizing mean-variance portfolio optimization.  The first portfolio according to the traditional Markowitz approach, using the 
 		mean of historical returns as the expected return.  The second uses our predicted returns from the regression process as our "expected" return.  Mean-variance optimization 
 		requires an additional minimum return.  We also append our returns with the return of a "risk free rate".  Now, using the library CvxOpt, we solve for the portfolio weights
 		which minimize portfolio variance while simultaneously achieving the minimum daily return.  We return the weights for both portfolios, and append them to a Google Spreadsheet
 		consisting of historical currency pair weights.  		
 
-	6. Charts
+	7. Charts
 		In addition to the exchange rate charts with technical indicators, we have included some basic charts indicating portfolio performance.  First, a Markowitz
 		"Bullet", a chart with simulated portfolios given past returns data, and "efficient frontiers" for both a portfolio optimized on the mean as expected return
 		and the predicted returns as the expected return.  The stars indicate the mean-variance optimal solution for each portfolio.  Following is a chart showing the
@@ -122,11 +129,14 @@ def main():
 		update_weights = False
 
 	np.random.seed(919)
-	currency_list = Pull_Data.get_currency_list()
-	currency_quandl_list = Pull_Data.get_currency_quandl_list()
+	currency_list = sv.get_currency_list() 
+	currency_quandl_list = sv.get_currency_quandl_list() 
 
 #Get currency data and return as percentage returns
 	live_rates = import_spot_test.main()
+	# Export run-time spot rates to google sheet for calculating portfolio returns
+	to_google_sheet = live_rates.values.flatten().tolist()
+	weights_google_sheet.main(to_google_sheet, 'Spot-Rates')
 	currency_table = Pull_Data.get_currency_data(currency_list, currency_quandl_list, sv.num_days_optimal_portfolio, sv.end_date, sv.auth_tok)
 	currency_table = currency_table.append(live_rates)
 	returns_table = currency_table.pct_change(periods= sv.shift).dropna()
@@ -139,7 +149,6 @@ def main():
 	pred_pbar = predict_returns(regression_table, sv.interest_rate)
 
 # Subtract intraday returns and execution costs from predicted returns 
-
 	intraday_returns = returns_table.iloc[-1].values.flatten().tolist() 
 	intraday_returns[:] = [intrd * 100 * sv.leverage for intrd in intraday_returns]
 	intraday_with_shorts = []
@@ -165,7 +174,6 @@ def main():
 	return_vector = (np.asarray(merge_table).T) 
 	mean_rollover = np.mean(rollover_table, axis=0)
 
-
 	# Calculate daily returns as the cumulative sums of intraday moves and add risk free return to calculate risk metrics and cumulative returns charts
 	actual_returns = weights_google_sheet.pull_data(sv.num_days_optimal_portfolio, 'Spot-Rates')
 	actual_returns.index = actual_returns.index.date
@@ -179,50 +187,17 @@ def main():
 	historical_weights = weights_google_sheet.pull_data(sv.num_days_optimal_portfolio, 'Prediction')
 	historical_weights.index = historical_weights.index.date
 
-	test_returns = actual_returns.copy(deep= True)
+	actual_returns = rollover_to_returns(historical_weights, actual_returns, rollover_table)
 
-	for row_index, current_date in enumerate(historical_weights.index):
-		if row_index > 1:
-			date_delta = (current_date - historical_weights.index[row_index-1]).days
-			if date_delta > 0:
-				for column_index, value in historical_weights.iloc[row_index].iteritems():
-					if column_index != 'RF':
-						if value > 0:
-							actual_returns.iloc[row_index, actual_returns.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - L'] * date_delta * sv.leverage
-						elif value < 0:
-							actual_returns.iloc[row_index, actual_returns.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - S'] * date_delta * sv.leverage 
-						else:
-							continue
-
-	print test_returns
-	print actual_returns
-	
-	actual_returns['Execution_Cost'] = 0
-	n_weights = len(historical_weights)
 	#execution costs is a list in settings.py 
 	#spot_rates is a series flattened to a list representing the current rate
 	execution_returns = [float(exec_costs)/ rates * -100 * sv.leverage for exec_costs, rates in zip(sv.execution_costs, live_rates.values.flatten().tolist())]
-	# make temporary copy of historical weights
-	# Do not want to change while iterating
-	tmp_weights = historical_weights.copy(deep= True)
-	# row_index contains the index in integer format
-	# row contains the index in datetime format
-	for row_index, row in enumerate(historical_weights.index):
-		# Skip first row
-		if row_index > 1:
-			# column_index contains currency name, ex: USD/MXN
-			for column_index, boolean in  (abs(tmp_weights.iloc[row_index] - tmp_weights.iloc[row_index-1]) >= sv.weight_threshold).iteritems():
-				if boolean: 
-					actual_returns.iloc[row_index, historical_weights.columns.get_loc(column_index)] += execution_returns[tmp_weights.columns.get_loc(column_index)]
-					if row_index == n_weights - 1:
-						#Print a better message than this
-						print 'Currency: {0}, New Weight Allocation: {1}'.format(column_index, tmp_weights[column_index][row_index])
-				else:
-					tmp_weights.iloc[row_index] = tmp_weights.iloc[row_index-1]
 
-	historical_weights = tmp_weights
+	# Subtract execution costs from returns
+	# If change in weight value does not surpass weight threshold, no execution is made, therefore, weights revert to previous value
+	historical_weights, actual_returns = execution_to_returns(historical_weights, actual_returns, execution_returns)
 
-	# Calculate portfolio returns by multiplying portfolio
+	# Calculate portfolio returns by multiplying currency weights and returns, summing intraday returns into daily returns
 	portfolio_returns = historical_weights.multiply(actual_returns, axis= 0)
 	portfolio_returns = portfolio_returns.dropna()
 	portfolio_returns = portfolio_returns.groupby([portfolio_returns.index]).sum()
@@ -246,6 +221,7 @@ def main():
 	sharpe_df.dropna(inplace= True)
 
 	total_return = portfolio_returns['Portfolio Returns']
+	# Adjust minimum return for accumulated intraday returns
 	if datetime.date.today() in total_return.index.values:
 		minimum_return = sv.rminimum - total_return.iloc[-1]
 	else:
@@ -403,7 +379,6 @@ def predict_returns(regression_table, interest_rate):
 	# short_list.append(interest_rate)
 	return short_list 
 
-
 def calc_sharpe(return_array, interest_rate, rolling_period):
 	#Calculate Sharpe Ratio to compare Benchmark Sharpe to Portfolio Sharpe
 
@@ -449,6 +424,44 @@ def consolidate_weights(weights_array):
 	weights_vector.append(rf)
 
 	return weights_vector
+
+def rollover_to_returns(weights_table, returns_table, rollover_table):
+	for row_index, current_date in enumerate(weights_table.index):
+		if row_index > 0:
+			date_delta = (current_date - weights_table.index[row_index-1]).days
+			if date_delta > 0:
+				for column_index, value in weights_table.iloc[row_index].iteritems():
+					if column_index != 'RF':
+						if value > 0:
+							returns_table.iloc[row_index, returns_table.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - L'] * date_delta * sv.leverage
+						elif value < 0:
+							returns_table.iloc[row_index, returns_table.columns.get_loc(column_index)] += rollover_table.loc[current_date][column_index+' - S'] * date_delta * sv.leverage 
+						else:
+							continue
+	return returns_table
+
+def execution_to_returns(weights_table, returns_table, execution_list):
+	n_weights = len(weights_table)
+	# make temporary copy of historical weights
+	# Do not want to change while iterating
+	tmp_weights = weights_table.copy(deep= True)
+	tmp_weights.drop(tmp_weights.index[[0]])
+	# row_index contains the index in integer format
+	# row contains the index in datetime format
+	for row_index, row in enumerate(weights_table.index):
+		# Skip first row
+		if row_index > 0:
+			# column_index contains currency name, ex: USD/MXN
+			for column_index, boolean in  (abs(tmp_weights.iloc[row_index] - tmp_weights.iloc[row_index-1]) >= sv.weight_threshold).iteritems():
+				if column_index != 'RF':
+					if boolean:
+						returns_table.iloc[row_index, weights_table.columns.get_loc(column_index)] += execution_list[tmp_weights.columns.get_loc(column_index)]
+						if row_index == n_weights - 1:
+							#Print a better message than this
+							print 'Currency: {0}, New Weight Allocation: {1}'.format(column_index, tmp_weights.iloc[row_index, weights_table.columns.get_loc(column_index)])
+					else:
+						tmp_weights.iloc[row_index] = tmp_weights.iloc[row_index-1]
+	return weights_table, returns_table
 
 
 if __name__ == "__main__":

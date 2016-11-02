@@ -1,9 +1,18 @@
 #Set variables
 import datetime
 from datetime import date, timedelta
+# Define quandl list as list of quandl codes to be used in portfolio
+# Define currency list as names of currencies available for portfolio
+def get_currency_quandl_list():
+	currency_quandl_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1',
+							'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
+	return currency_quandl_list
 
+def get_currency_list():
+	currency_list = ['USD/MXN', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
+	return currency_list 
 # Execution Cost List as decimal (In the order of currency list)
-execution_costs = [.008, 0.00027, 0.0003, 0.0012, 0.2, 0.00053, 0.00029, 0.002, 0.0002, 0.00017, 0.0]
+execution_costs = [.008, 0.00027, 0.0003, 0.0012, 0.2, 0.00053, 0.00029, 0.002, 0.0002, 0.00017]
 # authorization key for quandl data 
 auth_tok = "kz_8e2T7QchJBQ8z_VSi"
 # Input last day to get returns data for (default is today)
@@ -25,10 +34,9 @@ rminimum = 100/float(252)
 # Input risk free interest rate
 interest_rate = 2/ float(365)
 # Input weight threshold to make new trade 
-weight_threshold = 0.0
-# Input interval for displaying changes in the weight distribution over time for distribution chart (daily=1, weekly=5)
+weight_threshold = 0.03
+# Input interval for displaying changes in the weight distribution over time for distribution chart (5 = 5 portfolio changes)
 distribution_interval = 5
-
 # Number of days to pull data for 
 # ** this num_days is a different value than that used in other files **
 num_days_regression = 720

@@ -16,10 +16,11 @@ from sklearn.linear_model import Ridge
 import StringIO
 import csv 
 import import_spot_test
+import argparse
 
 def main():
-	currency_list = get_currency_list()
-	currency_quandl_list = get_currency_quandl_list()
+	currency_list = sv.get_currency_list()
+	currency_quandl_list = sv.get_currency_quandl_list()
 	fed_list = get_fed_list() 
 	# Calculate beginning date
 	beg_date = sv.end_date  - timedelta(sv.num_days_regression)
@@ -127,16 +128,6 @@ def query_past_economic_data(calendar_today, calendar_full, fed_table, economic_
 			print ' *** {0} is not a country in the Economic Dictionary ***'.format(country)
 
 	return fed_table 
-
-def get_currency_quandl_list():
-	currency_quandl_list = ['CURRFX/MXNUSD.1', 'CURRFX/USDCAD.1', 'CURRFX/NZDUSD.1', 'CURRFX/USDHKD.1', 'CURRFX/USDJPY.1', 'CURRFX/USDSGD.1', 'CURRFX/GBPUSD.1', 'CURRFX/USDZAR.1',
-							'CURRFX/AUDUSD.1', 'CURRFX/EURUSD.1']
-	return currency_quandl_list
-
-def get_currency_list():
-	currency_list = ['USD/MXN', 'USD/CAD', 'NZD/USD', 'USD/HKD', 'USD/JPY', 'USD/SGD', 'GBP/USD', 'USD/ZAR', 'AUD/USD', 'EUR/USD']
-	return currency_list 
-
 
 def get_economic_data_dict():
 	# Dictonary keys are the country name
