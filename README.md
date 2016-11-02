@@ -46,15 +46,23 @@ The Optimize FX Portfolio Project -Version 1.0
 		current spot rate at time of run) as well as predictions for today's economic data releases.  The closer to end of trading day, the more accurate the predictions will
 		be.  Of course, this in itself is a risk-return tradeoff.  Ideally, one would run updated regression predictions throughout the day after each data release becomes available, 
 		or simulate many different data release scenarios.  Making these predictions is currently not an automated process.
-	
-	5. Optimize Portfolio
+
+	5. Calculate returns
+		Return calculations not only include the change between currencies over an interval of time, we have also included additions and negations for rollover and execution costs. 
+		In calculating actual portfolio returns, we take the sum of intraday returns to calculate returns on the day.  Using these daily returns, we calculate the return over a period
+		longer than one day as the cumulative (compounded) return over the specified period.  This is an important assumption, that intraday returns are not compounded.  We have also 
+		incorporated our adjusted intraday portfolio return into the minimum return constraint when optimizing the portfolio.  The minimum return is calculated as the minimum return value
+		assigned in settings minus the accumulated intraday return.  Our predicted return values also take into account amounts of rollover and execution costs per trade.  Thus, we have 
+		more accurately optimized our portfolio by incorporating returns, rollover, and execution costs rather than just returns.
+
+	6. Optimize Portfolio
 		We then optimize two "different" portfolios utilizing mean-variance portfolio optimization.  The first portfolio according to the traditional Markowitz approach, using the 
 		mean of historical returns as the expected return.  The second uses our predicted returns from the regression process as our "expected" return.  Mean-variance optimization 
 		requires an additional minimum return.  We also append our returns with the return of a "risk free rate".  Now, using the library CvxOpt, we solve for the portfolio weights
 		which minimize portfolio variance while simultaneously achieving the minimum daily return.  We return the weights for both portfolios, and append them to a Google Spreadsheet
 		consisting of historical currency pair weights.  		
 
-	6. Charts
+	7. Charts
 		In addition to the exchange rate charts with technical indicators, we have included some basic charts indicating portfolio performance.  First, a Markowitz
 		"Bullet", a chart with simulated portfolios given past returns data, and "efficient frontiers" for both a portfolio optimized on the mean as expected return
 		and the predicted returns as the expected return.  The stars indicate the mean-variance optimal solution for each portfolio.  Following is a chart showing the
